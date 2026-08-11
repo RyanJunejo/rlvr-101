@@ -1,0 +1,109 @@
+# Readings
+
+**None of this is required.** The modules are written to stand on their own —
+you shouldn't need to read a paper to finish an exercise. This is here for when
+you finish something and want to go deeper.
+
+They're ordered by how approachable they are, not by importance. The note under
+each one matters more than the link: it tells you what to actually read and what
+to skip.
+
+---
+
+## Start here (no background needed)
+
+**Karpathy, "Deep Reinforcement Learning: Pong from Pixels" (2016)**
+<http://karpathy.github.io/2016/05/31/rl/>
+
+The best intuition-builder for this material ever written, and it assumes very
+little. The key passage is where he points out that this is really just ordinary
+supervised learning, where the training examples are the model's own samples,
+weighted by how well each one did.
+
+Skip the Atari-specific parts. Read it after Module 01 exercise 2 and it'll
+click.
+
+**"Concrete Problems in AI Safety" (2016)** — arXiv:1606.06565
+
+Read **section 3 only**, on reward hacking. It's plain prose, no math, and it
+predicts essentially every failure you'll hit in the Module 02 lab. The example
+of a boat that learns to spin in circles collecting points instead of finishing
+the race is the canonical one.
+
+---
+
+## When you want the actual algorithm
+
+**The GRPO paper** (DeepSeekMath, 2024) — arXiv:2402.03300
+
+Read **section 4.1 only**. Two pages. This is the algorithm you build in Module
+01 exercise 4, and reading it *afterward* is satisfying: you'll
+recognize everything, and you'll notice how short the justification for dropping
+the value network actually is.
+
+Ignore the rest of the paper unless you care about math benchmarks.
+
+**Sutton & Barto, *Reinforcement Learning: An Introduction*** (free online)
+<http://incompleteideas.net/book/the-book-2nd.html>
+
+*The* RL textbook. Be selective — most of it is about a setting we don't use.
+
+- **Chapter 2** is the slot machine chapter. Directly relevant to exercise 1.
+- **Chapter 13** covers the method from exercises 2 and 3, more formally.
+- **Chapters 3–12** are about the setting where your actions change what you face
+  next (robots, games). Interesting, but not what we're doing. Don't start there
+  and don't feel obliged to.
+
+**PPO** (2017) — arXiv:1707.06347
+
+The older, more complicated relative of GRPO. Skim it. You want the idea of
+capping how far the model can move in a single update, because that safety
+mechanism carries over and you'll see it named in training configs.
+
+---
+
+## Once you've trained something
+
+**DeepSeek-R1 (2025)** — arXiv:2501.12948
+
+Large-scale training that actually worked, described unusually honestly. The
+striking part is R1-Zero: pure RL starting from a base model with no worked
+examples at all, and long chains of reasoning emerging on their own.
+
+**INTELLECT-3 technical report** — arXiv:2512.16144
+
+Prime Intellect's own model, trained on the exact stack you're learning. The
+closest thing to "here's what all of this looks like at full scale." Read it
+after Module 05, when the vocabulary will mean something.
+
+**`prime-rl`** — <https://github.com/PrimeIntellect-ai/prime-rl>
+
+Read the `configs/` folder before the source. The config files are the clearest
+statement of how the system is organized.
+
+---
+
+## Reference
+
+**`verifiers`** — <https://github.com/PrimeIntellect-ai/verifiers>
+
+Read the source over the docs; the docs lag the library. `envs/environment.py`
+and `rubrics/rubric.py` are each readable in one sitting.
+
+**Environments Hub announcement** —
+<https://www.primeintellect.ai/blog/environments>
+
+The reasoning behind the product. Strategy, not mechanics.
+
+---
+
+## What you can safely ignore
+
+If you go looking for RL material online you'll find a lot about Atari, DQN,
+replay buffers, target networks, robot control, and TD-lambda. It's all real RL
+and it's almost entirely irrelevant here — it exists to solve the problem of
+your actions changing what you face next, which mostly doesn't happen in our
+setting.
+
+If you find yourself three hours into a video about Q-learning, you've wandered
+off the path.

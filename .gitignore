@@ -1,0 +1,25 @@
+# Secrets. Never commit this -- it holds a live API key.
+.env
+
+# Virtualenv and caches
+.venv/
+__pycache__/
+*.pyc
+.uv/
+
+# Run output
+outputs/
+wandb/
+*.jsonl.tmp
+
+# Your own answers to the problem sets stay local. Delete these two lines if
+# you'd rather track your work.
+modules/*/NOTES_ANSWERS.md
+modules/07-capstone/WRITEUP.md
+
+.DS_Store
+
+# NOTE: uv.lock is deliberately NOT ignored. This course depends on the exact
+# API of verifiers 0.3.0, and three things in it don't match the published
+# docs. Committing the lockfile is what makes a fresh clone reproduce the
+# same behaviour.

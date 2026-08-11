@@ -1,0 +1,1156 @@
+<title>RL + Prime Intellect &#8212; Workbook</title>
+
+<style>
+  /* ---------------------------------------------------------------
+     Tokens. The palette is the subject: advantage is signed, so the
+     page runs on a diverging axis -- teal for negative, ember for
+     positive -- with neutrals biased toward the teal.
+     --------------------------------------------------------------- */
+  :root {
+    --paper:      #F2F4F4;
+    --surface:    #FFFFFF;
+    --surface-2:  #E9EDED;
+    --ink:        #161B1E;
+    --ink-soft:   #3A4A4F;
+    --muted:      #5A6A70;
+    --rule:       #D3DBDC;
+    --rule-soft:  #E2E8E8;
+    --accent:     #0F6E75;
+    --accent-ink: #0B565C;
+    --ember:      #B4531F;
+    --ember-soft: #F2E3D8;
+    --accent-wash:#E2EEEF;
+    --shadow:     0 1px 2px rgba(22,27,30,.06), 0 8px 24px -12px rgba(22,27,30,.18);
+
+    --f-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
+    --f-prose: ui-serif, "Iowan Old Style", Charter, "Bitstream Charter", "Palatino Linotype", Georgia, serif;
+    --f-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:      #0E1214;
+      --surface:    #161C1F;
+      --surface-2:  #1D2528;
+      --ink:        #E8EDEE;
+      --ink-soft:   #C2CFD2;
+      --muted:      #8FA1A6;
+      --rule:       #273135;
+      --rule-soft:  #1F292C;
+      --accent:     #4FC4CC;
+      --accent-ink: #7FD9DF;
+      --ember:      #E08A4C;
+      --ember-soft: #33241A;
+      --accent-wash:#12292C;
+      --shadow:     0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+
+  /* The viewer's toggle must win over the media query, in both directions. */
+  :root[data-theme="dark"] {
+    --paper:#0E1214; --surface:#161C1F; --surface-2:#1D2528;
+    --ink:#E8EDEE; --ink-soft:#C2CFD2; --muted:#8FA1A6;
+    --rule:#273135; --rule-soft:#1F292C;
+    --accent:#4FC4CC; --accent-ink:#7FD9DF; --ember:#E08A4C;
+    --ember-soft:#33241A; --accent-wash:#12292C;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+  :root[data-theme="light"] {
+    --paper:#F2F4F4; --surface:#FFFFFF; --surface-2:#E9EDED;
+    --ink:#161B1E; --ink-soft:#3A4A4F; --muted:#5A6A70;
+    --rule:#D3DBDC; --rule-soft:#E2E8E8;
+    --accent:#0F6E75; --accent-ink:#0B565C; --ember:#B4531F;
+    --ember-soft:#F2E3D8; --accent-wash:#E2EEEF;
+    --shadow: 0 1px 2px rgba(22,27,30,.06), 0 8px 24px -12px rgba(22,27,30,.18);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-prose);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr);
+    gap: 56px;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 32px 120px;
+  }
+
+  /* ---- nav rail ---- */
+  nav {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    max-height: 100vh;
+    overflow-y: auto;
+    padding: 40px 0;
+    font-family: var(--f-ui);
+    font-size: 13px;
+  }
+  .nav-label {
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  nav ol { list-style: none; margin: 0 0 28px; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+  nav a {
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    gap: 8px;
+    padding: 6px 8px 6px 0;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-radius: 3px;
+    line-height: 1.35;
+  }
+  nav a:hover { color: var(--accent-ink); background: var(--accent-wash); }
+  nav a .n { font-family: var(--f-mono); font-size: 11px; color: var(--muted); padding-left: 6px; }
+  nav a.locked { opacity: .48; }
+
+  /* ---- masthead ---- */
+  header { padding: 72px 0 40px; border-bottom: 1px solid var(--rule); }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 20px;
+  }
+  h1 {
+    font-family: var(--f-ui);
+    font-weight: 700;
+    letter-spacing: -.028em;
+    font-size: clamp(34px, 5.4vw, 52px);
+    line-height: 1.04;
+    margin: 0 0 22px;
+    text-wrap: balance;
+    max-width: 15ch;
+  }
+  .thesis {
+    font-size: 20px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 60ch;
+    margin: 0;
+  }
+  .thesis strong { color: var(--ink); font-weight: 600; }
+
+  /* ---- sections ---- */
+  section { padding: 56px 0 0; }
+  h2 {
+    font-family: var(--f-ui);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 26px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  h3 {
+    font-family: var(--f-ui);
+    font-size: 21px;
+    font-weight: 650;
+    letter-spacing: -.014em;
+    margin: 0 0 10px;
+    text-wrap: balance;
+  }
+  p { margin: 0 0 18px; max-width: 68ch; }
+  .prose-narrow { max-width: 64ch; }
+  a { color: var(--accent-ink); }
+
+  code {
+    font-family: var(--f-mono);
+    font-size: .85em;
+    background: var(--surface-2);
+    padding: .12em .34em;
+    border-radius: 3px;
+  }
+  pre {
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 2px solid var(--accent);
+    padding: 14px 16px;
+    overflow-x: auto;
+    border-radius: 0 4px 4px 0;
+    margin: 0 0 18px;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  /* ---- module list ---- */
+  .modules { display: flex; flex-direction: column; gap: 0; }
+  .mod {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 18px;
+    padding: 26px 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .mod:first-child { border-top: 1px solid var(--rule-soft); }
+  .mod-n {
+    font-family: var(--f-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    padding-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .mod.pending .mod-n { color: var(--muted); }
+  .mod-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .mod h3 { margin: 0; }
+  .chip {
+    font-family: var(--f-ui);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .chip.ready { background: var(--accent-wash); color: var(--accent-ink); }
+  .chip.soon  { background: var(--surface-2); color: var(--muted); }
+  .chip.gpu   { background: var(--ember-soft); color: var(--ember); }
+  .mod p { margin: 0 0 12px; font-size: 16px; }
+  .mod ul { margin: 0 0 12px; padding-left: 18px; font-size: 15.5px; color: var(--ink-soft); }
+  .mod li { margin-bottom: 3px; }
+  .mod li::marker { color: var(--muted); }
+
+  .track { display: flex; align-items: center; gap: 8px; font-family: var(--f-ui); font-size: 13px; color: var(--muted); }
+  .track input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+  .track label { cursor: pointer; user-select: none; }
+
+  /* ---- figures ---- */
+  figure { margin: 0 0 32px; }
+  .fig-wrap {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 22px 20px 16px;
+    overflow-x: auto;
+  }
+  figure svg { display: block; min-width: 520px; width: 100%; height: auto; }
+  figcaption {
+    font-family: var(--f-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+    margin-top: 12px;
+    max-width: 62ch;
+  }
+  figcaption b { color: var(--ink-soft); font-weight: 600; }
+
+  .svg-label { font-family: var(--f-ui); font-size: 11.5px; font-weight: 600; fill: var(--ink); }
+  .svg-mono  { font-family: var(--f-mono); font-size: 11px; fill: var(--ink-soft); }
+  .svg-cap   { font-family: var(--f-ui); font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; fill: var(--muted); }
+  .svg-box   { fill: var(--surface-2); stroke: var(--rule); stroke-width: 1; }
+  .svg-arrow { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+
+  /* ---- results table ---- */
+  .table-wrap { overflow-x: auto; margin: 0 0 20px; }
+  table { border-collapse: collapse; width: 100%; font-family: var(--f-ui); font-size: 14.5px; min-width: 460px; }
+  th, td { text-align: left; padding: 11px 14px 11px 0; border-bottom: 1px solid var(--rule-soft); }
+  th {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--ember); font-weight: 600; }
+
+  /* ---- quiz ---- */
+  .quiz { display: flex; flex-direction: column; gap: 2px; }
+  details {
+    border-bottom: 1px solid var(--rule-soft);
+    padding: 2px 0;
+  }
+  details:first-of-type { border-top: 1px solid var(--rule-soft); }
+  summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 15px 34px 15px 0;
+    position: relative;
+    font-family: var(--f-ui);
+    font-size: 16px;
+    font-weight: 550;
+    line-height: 1.45;
+    color: var(--ink);
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: "+";
+    position: absolute;
+    right: 6px; top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--f-mono);
+    font-size: 17px;
+    font-weight: 400;
+    color: var(--accent);
+    transition: transform .18s ease;
+  }
+  details[open] summary::after { content: "\2212"; }
+  summary:hover { color: var(--accent-ink); }
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+  .answer {
+    padding: 0 34px 18px 0;
+    font-size: 16px;
+    color: var(--ink-soft);
+    max-width: 66ch;
+    border-left: 2px solid var(--accent);
+    padding-left: 16px;
+    margin-bottom: 16px;
+  }
+  .answer p { margin: 0 0 12px; font-size: inherit; }
+  .answer p:last-child { margin: 0; }
+
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 2px solid var(--ember);
+    border-radius: 0 4px 4px 0;
+    padding: 18px 20px;
+    margin: 0 0 22px;
+  }
+  .callout p:last-child { margin: 0; }
+  .callout .tag {
+    font-family: var(--f-ui); font-size: 10.5px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ember);
+    display: block; margin-bottom: 8px;
+  }
+
+  footer {
+    margin-top: 72px; padding-top: 26px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--f-ui); font-size: 13.5px; color: var(--muted);
+  }
+
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; gap: 0; padding: 0 22px 80px; }
+    nav { position: static; max-height: none; padding: 28px 0 0; border-bottom: 1px solid var(--rule-soft); }
+    nav ol { flex-direction: row; flex-wrap: wrap; gap: 4px; margin-bottom: 20px; }
+    nav a { grid-template-columns: auto; padding: 5px 9px; background: var(--surface-2); }
+    nav a .n { display: none; }
+    header { padding: 40px 0 32px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+<style>
+  /* glossary */
+  .gloss { display: grid; grid-template-columns: minmax(150px, 210px) 1fr; gap: 0 26px; }
+  .gloss dt {
+    font-family: var(--f-ui); font-weight: 650; font-size: 15px;
+    padding: 13px 0 13px; border-top: 1px solid var(--rule-soft); color: var(--ink);
+  }
+  .gloss dd {
+    margin: 0; padding: 13px 0; border-top: 1px solid var(--rule-soft);
+    font-size: 15.5px; color: var(--ink-soft); max-width: 60ch;
+  }
+  .gloss dd .eg {
+    display: block; margin-top: 6px; font-family: var(--f-mono);
+    font-size: 12px; color: var(--muted);
+  }
+  @media (max-width: 700px) {
+    .gloss { grid-template-columns: 1fr; gap: 0; }
+    .gloss dt { border-top: 1px solid var(--rule-soft); padding-bottom: 2px; }
+    .gloss dd { border-top: none; padding-top: 4px; }
+  }
+  .lede { font-size: 18.5px; line-height: 1.6; color: var(--ink-soft); max-width: 62ch; }
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 0 0 22px; max-width: 62ch; }
+  .steps li {
+    counter-increment: s; position: relative; padding-left: 34px; margin-bottom: 11px;
+    font-size: 16.5px;
+  }
+  .steps li::before {
+    content: counter(s); position: absolute; left: 0; top: 1px;
+    font-family: var(--f-mono); font-size: 12px; font-weight: 600; color: var(--accent);
+    background: var(--accent-wash); width: 21px; height: 21px; border-radius: 3px;
+    display: grid; place-items: center;
+  }
+</style>
+
+<div class="shell">
+
+<nav>
+  <p class="nav-label">Lessons</p>
+  <ol>
+    <li><a href="#problem"><span class="n">&#167;</span><span>The problem</span></a></li>
+    <li><a href="#trick"><span class="n">&#167;</span><span>The trick</span></a></li>
+    <li><a href="#average"><span class="n">&#167;</span><span>Where the average comes from</span></a></li>
+    <li><a href="#scoring"><span class="n">&#167;</span><span>Writing the score</span></a></li>
+    <li><a href="#stack"><span class="n">&#167;</span><span>How training runs</span></a></li>
+  </ol>
+  <p class="nav-label">Modules</p>
+  <ol>
+    <li><a href="#m0"><span class="n">00</span><span>Setup</span></a></li>
+    <li><a href="#m1"><span class="n">01</span><span>Training on a score</span></a></li>
+    <li><a href="#m2"><span class="n">02</span><span>Writing the score</span></a></li>
+    <li><a href="#m3"><span class="n">03</span><span>Conversations &amp; tools</span></a></li>
+    <li><a href="#m4"><span class="n">04</span><span>Package &amp; publish</span></a></li>
+    <li><a href="#m5"><span class="n">05</span><span>Training for real</span></a></li>
+    <li><a href="#m6"><span class="n">06</span><span>The new API</span></a></li>
+    <li><a href="#m7"><span class="n">07</span><span>Capstone</span></a></li>
+  </ol>
+  <p class="nav-label">Reference</p>
+  <ol>
+    <li><a href="#results"><span class="n">&#167;</span><span>Measured results</span></a></li>
+    <li><a href="#quiz"><span class="n">&#167;</span><span>Self-check</span></a></li>
+    <li><a href="#glossary"><span class="n">&#167;</span><span>Glossary</span></a></li>
+    <li><a href="#setup"><span class="n">&#167;</span><span>Setup</span></a></li>
+  </ol>
+</nav>
+
+<main>
+
+<header>
+  <p class="eyebrow">RLVR 101 &#183; a hands-on course &#183; ~/RL+prime</p>
+  <h1>How you train a model when you can only score it</h1>
+  <p class="thesis">
+    No prior reinforcement learning knowledge needed. Every term is defined where it
+    first appears. You'll build the real training algorithm from scratch in plain
+    numpy, learn why writing the <strong>scoring function</strong> is the part that
+    actually matters, and then train a model for real.
+  </p>
+</header>
+
+<section id="problem">
+  <h2>Start with the problem</h2>
+  <p class="lede">
+    Normally you train a model by showing it the right answer: "when you see this,
+    produce that." But often you don't <em>have</em> the right answer written out.
+    You only have a way to <strong>check</strong> an answer once you see one.
+  </p>
+  <p>
+    You want a model that reasons well. You don't have a file of ideal reasoning.
+    What you do have is a checker: did the code run? is the number 391? So your
+    situation is:
+  </p>
+  <ul class="steps">
+    <li>You <b>cannot</b> say "produce this exact text."</li>
+    <li>You <b>can</b> say "produce something, and I'll tell you if it was good."</li>
+  </ul>
+  <p>
+    That's the whole setup. Now the obstacle, which is worth being precise about.
+    Training normally means computing a <b>gradient</b> &#8212; the direction to nudge
+    each of the model's internal numbers to make your score go up. That needs an
+    unbroken chain of smooth math from "internal number" to "score." Trace it:
+  </p>
+  <pre><code>internal numbers &#8594; probabilities &#8594; PICK A WORD &#8594; text &#8594; score
+     (smooth)          (smooth)        &#8592; breaks here</code></pre>
+  <p>
+    Everything is smooth until you <em>pick</em> a word. Picking one option out of
+    many is a jump, not a slope &#8212; there's no gentle incline through "I chose
+    word&nbsp;4 instead of word&nbsp;3." The chain breaks, and you can't
+    differentiate your way to a better model.
+  </p>
+</section>
+
+<section id="trick">
+  <h2>The trick</h2>
+  <p class="lede">
+    You can't compute the gradient. But you can <strong>estimate</strong> it by
+    trying things.
+  </p>
+  <ol class="steps">
+    <li>Have the model produce some output.</li>
+    <li>Score it.</li>
+    <li>Good score? Adjust the model to make that output <b>more likely</b>.</li>
+    <li>Bad score? Make it <b>less likely</b>.</li>
+    <li>Repeat a few thousand times.</li>
+  </ol>
+  <p>
+    That's the entire method. It has a name &#8212; <em>policy gradient</em> &#8212; but
+    the name matters less than what it does: it turns "I can score things" into "I can
+    improve things," without ever needing to know what the ideal output was.
+  </p>
+  <div class="callout">
+    <span class="tag">The one problem with this</span>
+    <p>
+      If all your scores are positive, <em>every</em> output you sample gets pushed up
+      &#8212; including bad ones, just less hard. You're reinforcing bad answers.
+    </p>
+    <p style="margin-top:12px">
+      The fix is one subtraction: use the score <b>minus the average score</b>. Now
+      anything below average gets a negative number, which pushes it <em>down</em>.
+      That subtracted number is called the <b>baseline</b>, and the result &#8212; how
+      much better than typical this output was &#8212; is called the <b>advantage</b>.
+    </p>
+  </div>
+  <p>
+    And it turns out subtracting a baseline costs you nothing at all. It's not a
+    trade-off; it's free. Module 01 has you measure exactly how much noise it removes,
+    and the answer is larger than you'd guess.
+  </p>
+</section>
+
+<section id="average">
+  <h2>Where does the average come from?</h2>
+  <p>
+    You need "the average score for this question." How would you know it?
+  </p>
+  <p>
+    The old answer: train a <b>second neural network</b> whose only job is to look at a
+    question and predict "you'll probably score about 0.44 here." That's what the
+    older algorithm PPO does. It costs you an entire extra model, and early on its
+    guesses are bad.
+  </p>
+  <p>
+    The modern answer is better, and slightly embarrassing once you see it:
+  </p>
+  <p class="lede" style="border-left:2px solid var(--accent); padding-left:18px; margin: 0 0 22px;">
+    Don't predict the average. <strong>Just ask the same question several times and
+    measure it.</strong>
+  </p>
+  <p>
+    Ask 8 times, get 8 answers, score all 8. Their average <em>is</em> the average
+    score for that question. No second network, no prediction. You just looked.
+  </p>
+  <p>
+    That's <b>GRPO</b>. A batch of answers to the same question is a <b>group</b>, and
+    each answer's advantage is measured against its own group. "Group Relative Policy
+    Optimization" is a complete description of the algorithm.
+  </p>
+
+  <figure>
+    <div class="fig-wrap">
+      <svg viewBox="0 0 700 260" role="img" aria-label="Diagram: one question is asked four times, the four scores are compared to their own average, producing signed advantages that sum to zero">
+        <text x="0" y="12" class="svg-cap">One question, asked 4 times</text>
+
+        <rect x="0" y="26" width="104" height="34" rx="3" class="svg-box"/>
+        <text x="52" y="48" class="svg-mono" text-anchor="middle">question</text>
+
+        <path d="M104 43 C 132 43, 132 92, 158 92" class="svg-arrow"/>
+        <path d="M104 43 C 132 43, 132 128, 158 128" class="svg-arrow"/>
+        <path d="M104 43 C 132 43, 132 164, 158 164" class="svg-arrow"/>
+        <path d="M104 43 C 132 43, 132 200, 158 200" class="svg-arrow"/>
+
+        <rect x="158" y="78" width="118" height="28" rx="3" class="svg-box"/>
+        <text x="167" y="97" class="svg-mono">answer A</text>
+        <text x="300" y="97" class="svg-mono" text-anchor="end">score 1.0</text>
+
+        <rect x="158" y="114" width="118" height="28" rx="3" class="svg-box"/>
+        <text x="167" y="133" class="svg-mono">answer B</text>
+        <text x="300" y="133" class="svg-mono" text-anchor="end">score 0.0</text>
+
+        <rect x="158" y="150" width="118" height="28" rx="3" class="svg-box"/>
+        <text x="167" y="169" class="svg-mono">answer C</text>
+        <text x="300" y="169" class="svg-mono" text-anchor="end">score 1.0</text>
+
+        <rect x="158" y="186" width="118" height="28" rx="3" class="svg-box"/>
+        <text x="167" y="205" class="svg-mono">answer D</text>
+        <text x="300" y="205" class="svg-mono" text-anchor="end">score 0.0</text>
+
+        <path d="M312 146 L 356 146" class="svg-arrow"/>
+        <text x="334" y="138" class="svg-cap" text-anchor="middle">compare</text>
+        <text x="368" y="132" class="svg-mono" style="font-size:12px">average of the four = 0.5</text>
+        <text x="368" y="152" class="svg-mono" style="fill:var(--muted)">each score minus that average</text>
+
+        <text x="368" y="196" class="svg-cap">Advantage</text>
+        <line x1="368" y1="228" x2="700" y2="228" stroke="var(--rule)" stroke-width="1"/>
+        <line x1="534" y1="208" x2="534" y2="248" stroke="var(--muted)" stroke-width="1" stroke-dasharray="2 3"/>
+        <text x="534" y="258" class="svg-mono" text-anchor="middle" style="fill:var(--muted)">0</text>
+
+        <rect x="534" y="212" width="84" height="13" rx="2" fill="var(--ember)"/>
+        <text x="626" y="222" class="svg-mono" style="fill:var(--ember)">A and C: up</text>
+
+        <rect x="450" y="230" width="84" height="13" rx="2" fill="var(--accent)"/>
+        <text x="442" y="240" class="svg-mono" text-anchor="end" style="fill:var(--accent)">B and D: down</text>
+      </svg>
+    </div>
+    <figcaption>
+      <b>The whole algorithm, in one picture.</b> Because the advantages are built by
+      subtracting the average, they always sum to zero &#8212; the signal is entirely
+      about which answers beat the others <em>in their own group</em>.
+      Which leads to the most useful thing in Module 01: if all four answers score the
+      same, every advantage is <b>zero</b> and that question teaches the model nothing.
+      A question the model always gets right and one it always gets wrong are the
+      <em>same</em> failure.
+    </figcaption>
+  </figure>
+</section>
+
+<section id="scoring">
+  <h2>Then the hard part: writing the score</h2>
+  <p>
+    Once you can train on a score, notice what's left wide open. <b>Everything now
+    depends on that score.</b> The algorithm has no opinion about what's good &#8212; it
+    faithfully maximizes whatever number you hand it.
+  </p>
+  <p>
+    The tool for writing that is <code>verifiers</code>. What you build is called an
+    <b>environment</b>, which is a grander word than it deserves. It's three things:
+  </p>
+
+  <figure>
+    <div class="fig-wrap">
+      <svg viewBox="0 0 700 168" role="img" aria-label="Diagram: questions, then the model responds, then a parser extracts the answer, then a rubric scores it, producing one number">
+        <rect x="0" y="34" width="118" height="52" rx="3" class="svg-box"/>
+        <text x="59" y="58" class="svg-label" text-anchor="middle">questions</text>
+        <text x="59" y="75" class="svg-mono" text-anchor="middle" style="font-size:10px">and answers</text>
+
+        <path d="M126 60 L 158 60" class="svg-arrow" marker-end="url(#ar)"/>
+
+        <rect x="166" y="34" width="118" height="52" rx="3" class="svg-box"/>
+        <text x="225" y="58" class="svg-label" text-anchor="middle">model replies</text>
+        <text x="225" y="75" class="svg-mono" text-anchor="middle" style="font-size:10px">free-form text</text>
+
+        <path d="M292 60 L 324 60" class="svg-arrow" marker-end="url(#ar)"/>
+
+        <rect x="332" y="34" width="118" height="52" rx="3" class="svg-box"/>
+        <text x="391" y="58" class="svg-label" text-anchor="middle">parser</text>
+        <text x="391" y="75" class="svg-mono" text-anchor="middle" style="font-size:10px">finds the answer</text>
+
+        <path d="M458 60 L 490 60" class="svg-arrow" marker-end="url(#ar)"/>
+
+        <rect x="498" y="34" width="118" height="52" rx="3" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1"/>
+        <text x="557" y="58" class="svg-label" text-anchor="middle" style="fill:var(--accent-ink)">your scoring</text>
+        <text x="557" y="75" class="svg-mono" text-anchor="middle" style="font-size:10px; fill:var(--accent-ink)">function</text>
+
+        <path d="M624 60 L 656 60" class="svg-arrow" marker-end="url(#ar)"/>
+        <text x="678" y="65" class="svg-mono" text-anchor="middle" style="font-size:13px; fill:var(--ember)">score</text>
+
+        <line x1="0" y1="112" x2="700" y2="112" stroke="var(--rule-soft)" stroke-width="1"/>
+        <text x="0" y="134" class="svg-cap">The same object, used three ways</text>
+        <text x="0" y="154" class="svg-mono">a test &#160;&#160;&#183;&#160;&#160; a way to generate training data &#160;&#160;&#183;&#160;&#160; a training task</text>
+
+        <defs>
+          <marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L8 4 L0 8 z" fill="var(--muted)"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+    <figcaption>
+      No simulator, no physics &#8212; just questions, a way to find the answer in the
+      reply, and a function that scores it. <b>A test you can train against is a
+      training task</b>; there's no difference between them, which is why the library
+      doesn't distinguish them.
+    </figcaption>
+  </figure>
+
+  <div class="callout">
+    <span class="tag">The lesson that costs people GPU-days</span>
+    <p>
+      Module 02 hands you a scoring function that reads perfectly sensibly:
+      <em>"did the right answer appear anywhere in the reply?"</em> Versions of it ship
+      in real codebases.
+    </p>
+    <p style="margin-top:12px">
+      It gives full marks to a reply that says the answer is <em>not</em> 391, to one
+      that guesses five numbers at once, and to one that simply lists every number from
+      380 to 400. It scores <strong>5 out of 12</strong> against an adversarial set.
+    </p>
+    <p style="margin-top:12px">
+      That's worse than it sounds. A <em>noisy</em> score is survivable
+      &#8212; random errors average out. An <em>exploitable</em> one doesn't, because
+      training is a search process whose entire job is finding the highest score
+      available. Listing numbers really does score better than multiplying, and it's
+      much easier. The model isn't cheating; it's doing exactly what you asked.
+    </p>
+  </div>
+</section>
+
+<section id="stack">
+  <h2>How a real training run is organized</h2>
+  <figure>
+    <div class="fig-wrap">
+      <svg viewBox="0 0 700 210" role="img" aria-label="Diagram: three separate programs run at once, one generating answers, one scoring them, one updating the model">
+        <text x="0" y="12" class="svg-cap">Three programs, running at the same time</text>
+
+        <rect x="0" y="30" width="180" height="72" rx="4" class="svg-box"/>
+        <text x="90" y="56" class="svg-label" text-anchor="middle">generating</text>
+        <text x="90" y="74" class="svg-mono" text-anchor="middle" style="font-size:10px">the model writes</text>
+        <text x="90" y="90" class="svg-mono" text-anchor="middle" style="font-size:10px">answers</text>
+
+        <rect x="260" y="30" width="180" height="72" rx="4" fill="var(--accent-wash)" stroke="var(--accent)"/>
+        <text x="350" y="56" class="svg-label" text-anchor="middle" style="fill:var(--accent-ink)">scoring</text>
+        <text x="350" y="74" class="svg-mono" text-anchor="middle" style="font-size:10px; fill:var(--accent-ink)">hands out work,</text>
+        <text x="350" y="90" class="svg-mono" text-anchor="middle" style="font-size:10px; fill:var(--accent-ink)">runs YOUR function</text>
+
+        <rect x="520" y="30" width="180" height="72" rx="4" class="svg-box"/>
+        <text x="610" y="56" class="svg-label" text-anchor="middle">updating</text>
+        <text x="610" y="74" class="svg-mono" text-anchor="middle" style="font-size:10px">changes the model's</text>
+        <text x="610" y="90" class="svg-mono" text-anchor="middle" style="font-size:10px">weights</text>
+
+        <path d="M180 58 L 252 58" class="svg-arrow" marker-end="url(#ar2)"/>
+        <text x="216" y="50" class="svg-mono" text-anchor="middle" style="font-size:9.5px">answers</text>
+
+        <path d="M440 58 L 512 58" class="svg-arrow" marker-end="url(#ar2)"/>
+        <text x="476" y="50" class="svg-mono" text-anchor="middle" style="font-size:9.5px">scores</text>
+
+        <path d="M610 108 L 610 138 L 90 138 L 90 110" class="svg-arrow" stroke-dasharray="4 3" marker-end="url(#ar2)"/>
+        <text x="350" y="152" class="svg-mono" text-anchor="middle" style="font-size:9.5px; fill:var(--muted)">the improved model goes back to generating</text>
+
+        <line x1="0" y1="172" x2="700" y2="172" stroke="var(--rule-soft)"/>
+        <text x="0" y="196" class="svg-mono" style="fill:var(--muted)">your scoring function plugs in here &#8593; &#160; the rest is plumbing</text>
+
+        <defs>
+          <marker id="ar2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L8 4 L0 8 z" fill="var(--muted)"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+    <figcaption>
+      They're split into separate programs because writing text and updating weights
+      want very different things from the hardware. Keeping them apart means neither
+      sits idle waiting for the other. Of these three boxes, exactly one is yours.
+    </figcaption>
+  </figure>
+</section>
+
+<section id="modules">
+  <h2>The eight modules</h2>
+  <div class="modules">
+
+    <div class="mod" id="m0">
+      <div class="mod-n">00</div>
+      <div>
+        <div class="mod-head"><h3>Setup</h3><span class="chip ready">Ready</span></div>
+        <p>What the four Prime Intellect tools are and how they chain together. Ends with a check that makes one real API call and prints a score, so you know everything works before any concepts arrive.</p>
+        <div class="track"><input type="checkbox" id="c0"><label for="c0">Done</label></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m1">
+      <div class="mod-n">01</div>
+      <div>
+        <div class="mod-head"><h3>Training on a score</h3><span class="chip ready">Ready</span></div>
+        <p>Plain numpy. No GPU, no API key, runs in seconds. Four exercises, each the previous one plus one idea.</p>
+        <ul>
+          <li><b>Slot machines</b> &#8212; why you have to try things, and how to learn from noisy results</li>
+          <li><b>The update</b> &#8212; make good outputs more likely, on a model with a vocabulary of five</li>
+          <li><b>The baseline</b> &#8212; you shift every score by a meaningless +10 and watch learning get 359&#215; noisier</li>
+          <li><b>GRPO</b> &#8212; written from scratch. The real algorithm.</li>
+        </ul>
+        <div class="track"><input type="checkbox" id="c1"><label for="c1">Done</label></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m2">
+      <div class="mod-n">02</div>
+      <div>
+        <div class="mod-head"><h3>Writing the score</h3><span class="chip ready">Ready</span></div>
+        <p>Build a real task with <code>verifiers</code>, then break it on purpose.</p>
+        <ul>
+          <li>Where a scoring function's weights tip over, and a model that computes nothing becomes optimal</li>
+          <li>Twelve adversarial replies. The obvious scoring function survives five</li>
+          <li>Runs offline &#8212; no API key needed for the main exercise</li>
+        </ul>
+        <div class="track"><input type="checkbox" id="c2"><label for="c2">Done</label></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m3">
+      <div class="mod-n">03</div>
+      <div>
+        <div class="mod-head"><h3>Conversations &amp; tools</h3><span class="chip ready">Ready</span></div>
+        <p>Multi-turn tasks, where the model's move changes what it sees next. Build a guessing game, then meet the problem that dominates multi-turn RL.</p>
+        <ul>
+          <li>The <b>sparse reward problem</b>: a weak model scores 0.0 on every rollout, every advantage is zero, and it learns <em>nothing</em></li>
+          <li>Measured across skill levels &#8212; and the two ends of the table turn out to be the same failure</li>
+          <li>Partial credit fixes it, and introduces exactly one new way to be gamed</li>
+          <li>Tools: why a docstring is prompt, not documentation</li>
+        </ul>
+        <div class="track"><input type="checkbox" id="c3"><label for="c3">Done</label></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m4">
+      <div class="mod-n">04</div>
+      <div>
+        <div class="mod-head"><h3>Package, publish, evaluate</h3><span class="chip ready">Ready</span></div>
+        <p>Making your task installable and sharing it. Then the statistics half, which is the one likely to change how you work.</p>
+        <ul>
+          <li>Model A scores 60%, model B scores 75%, n=20. You <b>cannot</b> call a winner &#8212; and you'll compute why</li>
+          <li>Two <em>identical</em> models showed a 15-point gap in 34.9% of experiments</li>
+          <li>Detecting a 0.5-point improvement needs <b>135,036</b> samples per model</li>
+          <li><code>pass@k</code> as a feasibility check: is this task trainable at all?</li>
+        </ul>
+        <div class="track"><input type="checkbox" id="c4"><label for="c4">Done</label></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m5">
+      <div class="mod-n">05</div>
+      <div>
+        <div class="mod-head"><h3>Training for real</h3><span class="chip ready">Ready</span><span class="chip gpu">GPU for part</span></div>
+        <p>Read a real <code>prime-rl</code> config and recognise every number in it. Work out the cost before starting. Then rent a box and train.</p>
+        <ul>
+          <li><code>group_size = 16</code> in the real config is the <em>G</em> you wrote in Unit 01</li>
+          <li>Two GPUs at $4.80/hr means $50 is ~10 hours, not 21</li>
+          <li>A validator that catches <code>group_size = 1</code> &#8212; a config that runs, completes, and teaches nothing</li>
+          <li>The two labs run offline; the GPU runbook is checkpointed, not autograded</li>
+        </ul>
+        <div class="track"><input type="checkbox" id="c5"><label for="c5">Done</label></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m6">
+      <div class="mod-n">06</div>
+      <div>
+        <div class="mod-head"><h3>The redesigned API</h3><span class="chip ready">Ready</span></div>
+        <p>Port your Unit 02 task to v1's taskset / harness / runtime split, and find out what it buys.</p>
+        <ul>
+          <li>The motivating case: a task you <em>cannot</em> express in v0</li>
+          <li>Three API details that don't match the published docs, found by reading the source</li>
+          <li>Infinite tasksets &#8212; generate harder questions as the model improves</li>
+        </ul>
+        <div class="track"><input type="checkbox" id="c6"><label for="c6">Done</label></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m7">
+      <div class="mod-n">07</div>
+      <div>
+        <div class="mod-head"><h3>Capstone</h3><span class="chip ready">Ready</span><span class="chip gpu">GPU</span></div>
+        <p>Choose a task nobody has built and take it from idea to published environment. Six stages, a rubric, and a write-up template.</p>
+        <ul>
+          <li>Choosing the difficulty band is most of the work, and you can't guess it</li>
+          <li>A gate before the GPU stage: no training until <code>pass@k</code> is measured</li>
+          <li>Marks deducted for any comparison reported without a sample size</li>
+        </ul>
+        <div class="track"><input type="checkbox" id="c7"><label for="c7">Done</label></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section id="results">
+  <h2>What the exercises actually print</h2>
+  <p class="prose-narrow">
+    Every claim here is backed by a number the code produces. These are real outputs,
+    not illustrations.
+  </p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>What you observe</th><th>Result</th><th>Where</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Noise removed by subtracting the average</td><td class="num">71.1%</td><td>01 &#183; exercise 3</td></tr>
+        <tr><td>Noise added by a <em>meaningless</em> +10 shift to every score</td><td class="num">359&#215;</td><td>01 &#183; exercise 3</td></tr>
+        <tr><td>Same shift, with a baseline</td><td class="num">no change</td><td>01 &#183; exercise 3</td></tr>
+        <tr><td>GRPO asking each question only once &#8212; final model</td><td class="num">0.200</td><td>01 &#183; exercise 4</td></tr>
+        <tr><td>GRPO asking 8 times &#8212; chance of the best answer</td><td class="num">0.994</td><td>01 &#183; exercise 4</td></tr>
+        <tr><td>The obvious scoring function vs. 12 attacks</td><td class="num">5 / 12</td><td>02 &#183; exercise 3</td></tr>
+        <tr><td>The fixed scoring function vs. the same attacks</td><td class="num">12 / 12</td><td>02 &#183; exercise 3</td></tr>
+        <tr><td>Expert player, sparse reward &#8212; groups that teach anything</td><td class="num">0.0%</td><td>03 &#183; lab 2</td></tr>
+        <tr><td>Beginner player &#8212; useful groups, sparse vs shaped</td><td class="num">45% &#8594; 100%</td><td>03 &#183; lab 2</td></tr>
+        <tr><td>Two <em>identical</em> models showing a 15+ point gap</td><td class="num">34.9%</td><td>04 &#183; lab 2</td></tr>
+        <tr><td>Samples needed to detect a 0.5-point improvement</td><td class="num">135,036</td><td>04 &#183; lab 2</td></tr>
+        <tr><td>Completions generated per training step (reverse-text)</td><td class="num">2,048</td><td>05 &#183; lab 1</td></tr>
+        <tr><td>Cost of 2&#215;H100 &#8212; what $50 actually buys</td><td class="num">10.4 hrs</td><td>05 &#183; lab 1</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose-narrow" style="color:var(--muted); font-size:15.5px;">
+    That <code>0.200</code> is the one to sit with. Ask each question only once and the
+    "average of the group" is just that single score &#8212; so every advantage is exactly
+    zero and the model never changes. It ran 600 training steps and came out identical
+    to how it went in.
+  </p>
+</section>
+
+<section id="quiz">
+  <h2>Self-check</h2>
+  <p class="prose-narrow">
+    Try to answer before expanding. If you can't, that's the thing to go reread.
+  </p>
+  <div class="quiz">
+
+    <details>
+      <summary>Why can't we train the model the ordinary way &#8212; just showing it the right answer?</summary>
+      <div class="answer">
+        <p>Because for a lot of what we want, we don't have the right answer written out.
+        Nobody has a file of ideal reasoning traces. What we have instead is a
+        <em>checker</em>: run the code and see if it passes, or compare the final number
+        to 391.</p>
+        <p>So we can't say "produce this text." We can only say "produce something, and
+        I'll tell you how good it was." Everything else follows from that limitation.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Where exactly does the math "break" so you can't compute a gradient?</summary>
+      <div class="answer">
+        <p>At the moment the model <em>picks</em> a word. Everything up to that point is
+        smooth &#8212; internal numbers flow into probabilities continuously. But picking
+        one option out of thousands is a discrete jump. There's no gentle slope through
+        "I chose word 4 rather than word 3," so there's nothing to follow.</p>
+        <p>That single break is why this whole field needs a different approach.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>In one sentence, what does the training method actually do?</summary>
+      <div class="answer">
+        <p>Sample some outputs, and make the ones that scored well more likely.</p>
+        <p>That's genuinely it. Karpathy's framing is worth keeping: it's ordinary
+        supervised learning, where the training examples are the model's own samples,
+        weighted by how well each one did. If your one-sentence version has more clauses
+        than that, you probably haven't simplified it enough yet.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>What goes wrong if all your scores are positive?</summary>
+      <div class="answer">
+        <p>Every output you sample gets pushed <em>up</em> &#8212; including the bad ones,
+        just less hard. You're actively reinforcing mediocre answers. It still works
+        eventually, because good answers get bigger pushes, but you're making the model
+        dig the signal out of a pile of noise it never needed to see.</p>
+        <p>The fix is one subtraction: use the score minus the average score. Now below-average
+        outputs get a negative multiplier and are pushed down.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>You add +10 to every score. The best possible model doesn't change. Why does learning get 359&#215; noisier?</summary>
+      <div class="answer">
+        <p>Without a baseline, the size of every update is proportional to the score. Make
+        every score about 10 and every update becomes a big shove toward whatever was
+        sampled &#8212; while the part you actually care about, the 0-to-1 spread between
+        good and bad, is a small ripple on top. Those big shoves cancel out
+        <em>on average</em>, but not in any batch of finite size.</p>
+        <p>The practical version: if you write a scoring function giving 10 points for
+        "replied in valid JSON" and 1 point for "the answer is correct," you've built
+        that exact problem into your rewards. Keep your scoring components on comparable
+        scales.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>GRPO needs the average score for a question. Where does it get it?</summary>
+      <div class="answer">
+        <p>It asks the question several times and averages what comes back. That's the
+        whole idea.</p>
+        <p>The older approach (PPO) trains an entire second neural network to <em>predict</em>
+        that average. GRPO points out that you don't have to predict something you can
+        simply measure &#8212; and you can measure it here because asking a model the same
+        question 8 times is cheap. That's a luxury you wouldn't have if each attempt meant
+        physically resetting a robot.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Asking each question only once didn't learn slowly &#8212; it didn't learn at all. Why?</summary>
+      <div class="answer">
+        <p>Because the advantage is "your score minus the group's average," and the average
+        of one number is that same number. So the advantage is always exactly zero, every
+        update is zero, and the model never moves.</p>
+        <p>This is the sharpest way to see where the signal actually comes from: <b>not</b>
+        from scores being high, only from scores being <em>different</em> within a group.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>A question where all 8 answers score 1.0, and one where all 8 score 0.0. What do they have in common?</summary>
+      <div class="answer">
+        <p>Both produce exactly zero learning. No spread means no advantage, regardless of
+        whether the shared score was high or low. Too easy and too hard are the
+        <em>same</em> failure, and both burn compute for nothing.</p>
+        <p>Which tells you how to pick training questions: you want ones the model gets
+        right <em>sometimes</em>. That's most of what "curriculum design" means in practice.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Why is an <em>exploitable</em> scoring function much worse than a merely <em>noisy</em> one?</summary>
+      <div class="answer">
+        <p>Noise averages out across thousands of examples. An exploit doesn't &#8212; it
+        gets <em>amplified</em>, because training is a search process and its entire job is
+        finding the highest score available.</p>
+        <p>Trace it: one answer stumbles onto "list every number from 380 to 400" and scores
+        1.0 while the careful answers score 0.0 on an arithmetic slip. That gives the trick
+        a positive advantage, so it's reinforced, so it's sampled more, so it wins more
+        groups. A few hundred steps later the model has abandoned arithmetic &#8212; and the
+        score curve looked like a triumph the whole time, because the score is the thing
+        being hacked.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Why is a <em>formatting</em> reward specifically dangerous to weight heavily?</summary>
+      <div class="answer">
+        <p>Two properties make any scoring component a magnet for the model's attention:
+        it's <b>cheap</b> (any model can satisfy it immediately, no skill required) and
+        it's <b>reliable</b> (it pays out every single time). Correctness is neither.</p>
+        <p>So early in training, when the model is still bad at the actual task, formatting
+        is often the only component reliably producing score <em>differences</em> within a
+        group &#8212; which means it dominates exactly when the model is most impressionable.
+        The rule: an extra reward should be a tiebreaker, never a target.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Your fixed scoring function passes all 12 attacks. Is it safe?</summary>
+      <div class="answer">
+        <p>No &#8212; it's safe against the attacks someone thought of, which is a much
+        weaker claim. Still open: a lucky guess scores full marks (we reward outcomes, not
+        reasoning); the answer leaking into the prompt somewhere; and equivalent answers
+        written differently, where <code>0.5</code> and <code>1/2</code> score differently.</p>
+        <p>Loosening the comparison to fix those reopens the door to the attacks you just
+        closed. That trade-off never fully goes away. The real lesson: you cannot verify a
+        scoring function by reading it &#8212; everyone's looks fine. You verify it by trying
+        to break it.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+<section id="glossary">
+  <h2>Glossary</h2>
+  <p class="prose-narrow">
+    The terms worth having straight. The repo's <code>GLOSSARY.md</code> has the full
+    list, including the infrastructure vocabulary you'll need later.
+  </p>
+  <dl class="gloss">
+    <dt>Logits</dt>
+    <dd>The raw scores a model produces, one per possible next word, before they're
+      turned into probabilities. Any number, positive or negative.
+      <span class="eg">[2.0, 1.0, -1.0]</span></dd>
+
+    <dt>Softmax</dt>
+    <dd>The function that turns logits into probabilities &#8212; exponentiate each, then
+      divide by the total so they sum to 1. It stretches the gaps.
+      <span class="eg">[2.0, 1.0, -1.0] &#8594; [0.705, 0.259, 0.035]</span></dd>
+
+    <dt>Policy</dt>
+    <dd>The model's rule for choosing what to produce. When you read "the policy
+      improved," it just means the model got better.</dd>
+
+    <dt>Rollout</dt>
+    <dd>One run of the model on one question, producing one answer. Also called a
+      completion or a sample.</dd>
+
+    <dt>Reward</dt>
+    <dd>A number saying how good one answer was. You write the function that produces
+      it. There's no deeper truth to it, which is exactly why it's hard.</dd>
+
+    <dt>Gradient</dt>
+    <dd>The direction you'd nudge a set of numbers to make some output increase fastest.
+      Itself a list of numbers.</dd>
+
+    <dt>Baseline</dt>
+    <dd>A number subtracted from the score before using it, so below-average answers get
+      pushed down rather than weakly up. Usually the average score.</dd>
+
+    <dt>Advantage</dt>
+    <dd>Score minus baseline &#8212; how much better than typical this answer was. This is
+      the number that actually drives learning.</dd>
+
+    <dt>Group</dt>
+    <dd>Several answers to the <em>same</em> question. Ask once, get 8 answers, that's a
+      group of 8.</dd>
+
+    <dt>GRPO</dt>
+    <dd>Group Relative Policy Optimization. Measure each answer against the average of
+      its own group, instead of training a second network to predict that average. The
+      name is a complete description.</dd>
+
+    <dt>Value network</dt>
+    <dd>The second network the older method (PPO) trains just to predict the baseline.
+      GRPO's whole contribution is not needing one.</dd>
+
+    <dt>Variance</dt>
+    <dd>How much something jumps around between samples. High variance means you need
+      many samples before an average settles down.</dd>
+
+    <dt>Environment</dt>
+    <dd>In this stack: a set of questions, a way to find the answer in a reply, and a
+      scoring function. Bundled together. No simulator involved.</dd>
+
+    <dt>Rubric</dt>
+    <dd>Several scoring functions combined with weights, so you can say "correctness is
+      worth five times as much as formatting."</dd>
+
+    <dt>Reward hacking</dt>
+    <dd>When the model scores highly without doing the task you wanted. Not a bug in the
+      model &#8212; a bug in your scoring function.</dd>
+
+    <dt>Bandit</dt>
+    <dd>The simplest setting: several slot machines, pull one, get a payout, and your
+      choice doesn't change anything about the next round. Close to how single-question
+      model training actually behaves.</dd>
+  </dl>
+</section>
+
+<section id="setup">
+  <h2>Getting started</h2>
+  <pre><code>cd ~/RL+prime
+uv sync
+cp .env.example .env        # add your key, base URL, and model
+
+uv run python modules/00-setup/check_setup.py</code></pre>
+  <p class="prose-narrow">
+    Then the loop: read the module's <code>README.md</code>, fill in the
+    <code>TODO</code>s, run <code>verify.py</code>, compare against the answer key in
+    <code>solutions/</code>.
+  </p>
+  <pre><code>uv run python modules/01-rl-foundations/exercise_1_bandit.py
+uv run python modules/01-rl-foundations/verify.py</code></pre>
+  <p class="prose-narrow">
+    The graders check <em>behaviour</em>, not exact code &#8212; there's more than one
+    right way to write most of these. When something's wrong they name what broke and
+    show what they saw, rather than just failing.
+  </p>
+  <p class="prose-narrow">
+    Each module also has a <code>WORKED_EXAMPLES.md</code> with the arithmetic done out
+    in full, including a numerical check that proves the update formula is right instead
+    of asking you to take it on faith.
+  </p>
+  <div class="callout">
+    <span class="tag">One environment note</span>
+    <p>
+      The pyenv Python 3.12 on this machine was built without <code>_lzma</code>, which
+      breaks the HuggingFace <code>datasets</code> library. <code>pyproject.toml</code>
+      pins uv's own Python build to avoid it. If you ever see a mysterious
+      <code>ModuleNotFoundError: _lzma</code>, that's the cause.
+    </p>
+  </div>
+</section>
+
+<footer>
+  All eight units complete: 215 autograded checks, answer keys and worked examples
+  throughout. Unit 05's GPU runbook is checkpointed rather than autograded, and
+  says so. Plain-language definitions for everything are in
+  <code>GLOSSARY.md</code>.
+</footer>
+
+</main>
+</div>
+
+<script>
+  // Persist module progress. Nothing here is required for reading the page.
+  (function () {
+    var boxes = document.querySelectorAll('.track input[type="checkbox"]');
+    boxes.forEach(function (box) {
+      var key = 'rlwb:' + box.id;
+      try {
+        if (localStorage.getItem(key) === '1') box.checked = true;
+      } catch (e) { /* storage unavailable; checkboxes still work per-session */ }
+      box.addEventListener('change', function () {
+        try { localStorage.setItem(key, box.checked ? '1' : '0'); } catch (e) {}
+      });
+    });
+  })();
+</script>

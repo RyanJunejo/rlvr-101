@@ -1,0 +1,14 @@
+[project]
+name = "rl-workbook"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.5.2",
+    "python-dotenv>=1.2.2",
+    "verifiers>=0.3.0",
+]
+
+[tool.uv]
+# The system/pyenv CPython 3.12 on this machine was built without _lzma, which
+# breaks `datasets`. Force uv's own standalone builds, which ship complete.
+python-preference = "only-managed"
