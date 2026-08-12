@@ -24,6 +24,12 @@ just a score here -- it's a FEASIBILITY CHECK you run before renting a GPU.
 Fill in the two TODOs, then run me:
 
     uv run python modules/04-package-and-publish/exercise_3_pass_at_k.py
+
+TERMS USED IN THIS FILE
+
+  pass@1:   how often the model is right given ONE attempt. Plain accuracy.
+  pass@k:   how often at least one of k attempts succeeds
+  unbiased: correct on average -- both estimators here are; only one is useful
 """
 
 from __future__ import annotations

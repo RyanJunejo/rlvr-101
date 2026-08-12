@@ -11,6 +11,12 @@ answer on a laptop is a question you don't answer at $4.80/hour.
 Fill in the three TODOs, then run me:
 
     uv run python modules/05-training-on-gpu/exercise_1_budget.py
+
+TERMS USED IN THIS FILE
+
+  batch size: how many questions per training step
+  group size: how many answers sampled per question. The G from Unit 01.
+  step:       one full cycle: generate answers, score them, update the weights
 """
 
 from __future__ import annotations

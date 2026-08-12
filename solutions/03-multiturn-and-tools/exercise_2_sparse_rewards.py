@@ -2,6 +2,14 @@
 ANSWER KEY — Unit 03, Lab 2: the sparse reward problem.
 
     uv run python solutions/03-multiturn-and-tools/exercise_2_sparse_rewards.py
+
+TERMS USED IN THIS FILE
+
+  sparse reward:  a score that's mostly 0.0 with an occasional 1.0, and nothing
+                  in between
+  reward shaping: giving partial credit for progress, so weak models get signal
+  group:          several answers to the same question; no spread in a group means no
+                  advantage and no learning (Unit 01)
 """
 
 from __future__ import annotations

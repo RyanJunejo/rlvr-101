@@ -8,7 +8,30 @@ Scoring guide: **90+** you could teach this unit. **70–89** solid, move on.
 **Below 70** reread the lecture notes before Unit 02 — everything after this
 builds directly on it.
 
-Terms are in [`GLOSSARY.md`](../../GLOSSARY.md).
+### The vocabulary these questions use
+
+Here so you don't have to leave the page. Fuller entries, with examples, in
+[`GLOSSARY.md`](../../GLOSSARY.md).
+
+| term | in one line |
+|---|---|
+| **token** | a chunk of text; models read and write these, not letters |
+| **logits** | the model's raw scores, one per possible token, before they're probabilities |
+| **softmax** | turns logits into probabilities: exponentiate each, divide by the total |
+| **sampling** | picking a token by rolling weighted dice against those probabilities |
+| **policy** | the model plus how it samples. "The policy improved" = the model got better |
+| **gradient** | the direction to nudge a set of numbers to make some output go up fastest |
+| **policy gradient** | estimating that direction by sampling, since you can't compute it directly |
+| **REINFORCE** | the simplest policy gradient method: sample, score, make good ones likelier |
+| **estimator** | any recipe for guessing a quantity from a limited sample |
+| **unbiased** | correct *on average* over infinite samples — can still be wildly off on one |
+| **variance** | how much an estimator jumps around from sample to sample |
+| **baseline** | a number subtracted from the reward before the update; usually the average |
+| **advantage** | reward minus baseline — how much better than typical this output was |
+| **group** | several answers to the *same* question, usually written `G` |
+| **GRPO** | advantage measured against the group's own mean, so no value network is needed |
+| **value network** | a second network PPO trains to predict the baseline |
+| **PPO** | the older algorithm that needs that second network |
 
 ---
 

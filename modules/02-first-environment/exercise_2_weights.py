@@ -18,6 +18,12 @@ Fill in the two TODOs, then run me:
     uv run python modules/02-first-environment/exercise_2_weights.py
 
 No API key needed.
+
+TERMS USED IN THIS FILE
+
+  weight:    how much one scoring component counts toward the total
+  advantage: from Unit 01: reward minus the group's average. Scale-free, which
+             is why only the RATIO between weights matters.
 """
 
 from __future__ import annotations

@@ -32,6 +32,14 @@ you can test it on hand-built traces without a model anywhere in sight.
 Fill in the three TODOs, then run me:
 
     uv run python modules/03-multiturn-and-tools/exercise_1_guessing_game.py
+
+TERMS USED IN THIS FILE
+
+  Env:    the code that plays the environment's side of a conversation
+  trace:  the record of one attempt; `trace.assistant_messages` is everything
+          the model said
+  reward: scored after the rollout ends, and weighted into the total
+  metric: recorded alongside rewards but NEVER weighted -- instrumentation
 """
 
 from __future__ import annotations

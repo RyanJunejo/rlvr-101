@@ -26,6 +26,14 @@ THE THREE GOTCHAS, up front, because each one costs twenty minutes cold:
 Fill in the three TODOs, then run me:
 
     uv run python modules/02-first-environment/exercise_1_first_task.py
+
+TERMS USED IN THIS FILE
+
+  task:    one question plus how to score it
+  trace:   the record of one attempt: every message, and its scores
+  rollout: one run of the model on one question. Also called a completion.
+  reward:  a number saying how good one attempt was. You write the function.
+  taskset: the generator of tasks -- what the tools resolve by name
 """
 
 from __future__ import annotations

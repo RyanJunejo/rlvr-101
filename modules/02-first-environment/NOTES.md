@@ -5,6 +5,22 @@
 Scoring guide: **90+** you could teach this unit. **70–89** solid, move on.
 **Below 70** reread the lecture notes — Unit 03 assumes all of this.
 
+### The vocabulary these questions use
+
+Here so you don't have to leave the page. Fuller entries, with examples, in
+[`GLOSSARY.md`](../../GLOSSARY.md).
+
+| term | in one line |
+|---|---|
+| **task** | one question's ground truth plus how to score it |
+| **TaskData** | the frozen data for one question: prompt, answer |
+| **trace** | the record of one attempt — every message, and its scores |
+| **sampled** | a flag on a trace message: did the MODEL produce it, or did it arrive with the prompt? |
+| **rollout** | one run of the model on one question. Also called a completion. |
+| **taskset** | the generator of tasks; what the eval CLI resolves by name |
+| **weight** | how much one scoring component counts toward the total |
+| **reward hacking** | scoring highly without doing the task. A bug in your scoring, not the model. |
+
 ---
 
 ## Part A — The task object (30 pts)

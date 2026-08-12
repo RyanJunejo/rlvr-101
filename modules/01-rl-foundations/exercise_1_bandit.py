@@ -35,6 +35,13 @@ next. Here, it doesn't.
 Fill in the two TODOs, then run me:
 
     uv run python modules/01-rl-foundations/exercise_1_bandit.py
+
+TERMS USED IN THIS FILE
+
+  policy:       your rule for choosing what to do next
+  exploration:  trying options you're unsure about, to find out if they're good
+  exploitation: taking the option that has looked best so far
+  estimate:     your current best guess at an arm's true payout, from noisy samples
 """
 
 from __future__ import annotations

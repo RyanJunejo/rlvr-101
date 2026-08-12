@@ -42,6 +42,17 @@ respect to theta. But you can finish this exercise without it.
 Fill in the four TODOs, then run me:
 
     uv run python modules/01-rl-foundations/exercise_2_reinforce.py
+
+TERMS USED IN THIS FILE
+
+  token:           a chunk of text; models read and write these, not letters
+  logits:          the model's raw scores, one per token, before they're probabilities
+  softmax:         turns logits into probabilities: exponentiate each, divide by the total
+  sampling:        picking a token by rolling weighted dice against those probabilities
+  policy:          the model plus how it samples -- here, five logits and a dice roll
+  policy gradient: estimating the update direction by sampling, since you can't
+                   compute it directly through the dice roll
+  REINFORCE:       the simplest policy gradient method, and what you build here
 """
 
 from __future__ import annotations

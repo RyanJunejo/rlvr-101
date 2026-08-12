@@ -2,8 +2,14 @@
 
 Every term this workbook uses, in plain language, with a small example.
 
-Look things up as you go. Nothing here needs to be memorized — the terms will
-stick once you've written the code that uses them.
+**You shouldn't need this file often.** Each unit's problem set opens with a
+table of the vocabulary its questions use, and each exercise file ends its
+docstring with a `TERMS USED IN THIS FILE` block. This is the fuller version,
+with examples and the connections between terms — for when a one-liner isn't
+enough.
+
+Nothing here needs to be memorized. The terms stick once you've written the code
+that uses them.
 
 Terms are grouped by when you'll first meet them, not alphabetically, because
 the later ones are built out of the earlier ones.

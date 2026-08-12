@@ -5,6 +5,22 @@
 Scoring guide: **90+** you could teach this unit. **70–89** solid, move on.
 **Below 70** reread the lecture notes.
 
+### The vocabulary these questions use
+
+Here so you don't have to leave the page. Fuller entries, with examples, in
+[`GLOSSARY.md`](../../GLOSSARY.md).
+
+| term | in one line |
+|---|---|
+| **Env** | the code that plays the environment's side of a conversation |
+| **run()** | the Env's method that drives turns: take a move, reply, repeat |
+| **assistant_messages** | everything the model said during a rollout, in order |
+| **metric** | recorded alongside rewards but never weighted — instrumentation only |
+| **sparse reward** | a score that's mostly 0.0 with an occasional 1.0, nothing between |
+| **reward shaping** | partial credit for progress, so a weak model gets some signal |
+| **group** | several answers to the same question; no spread means no learning |
+| **Toolset** | a class whose `@vf.tool` methods the model can call |
+
 ---
 
 ## Part A — Multi-turn mechanics (25 pts)

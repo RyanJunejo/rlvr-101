@@ -16,6 +16,12 @@ accident, and nothing about it looks wrong until you've spent the money.
 Fill in the two TODOs, then run me:
 
     uv run python modules/05-training-on-gpu/exercise_2_config.py
+
+TERMS USED IN THIS FILE
+
+  orchestrator:  the process that hands out questions and runs your scoring
+  trainer:       the process that computes gradients and updates weights
+  learning rate: how big each weight update is
 """
 
 from __future__ import annotations

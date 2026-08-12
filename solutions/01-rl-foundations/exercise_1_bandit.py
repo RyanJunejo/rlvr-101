@@ -3,6 +3,13 @@ ANSWER KEY — Exercise 1, the k-armed bandit.
 
 Run me directly to see the same output the exercise produces:
     uv run python solutions/01-rl-foundations/exercise_1_bandit.py
+
+TERMS USED IN THIS FILE
+
+  policy:       your rule for choosing what to do next
+  exploration:  trying options you're unsure about, to find out if they're good
+  exploitation: taking the option that has looked best so far
+  estimate:     your current best guess at an arm's true payout, from noisy samples
 """
 
 from __future__ import annotations

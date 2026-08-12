@@ -43,6 +43,15 @@ description of it: advantage, relative to the group.
 Fill in the two TODOs, then run me:
 
     uv run python modules/01-rl-foundations/exercise_4_grpo.py
+
+TERMS USED IN THIS FILE
+
+  group:         several answers to the SAME question, usually written G
+  advantage:     reward minus baseline: how much better than typical this answer was
+  value network: a second neural network PPO trains just to predict the baseline
+  PPO:           the older algorithm that needs that second network. GRPO doesn't.
+  normalizing:   subtract the mean, divide by the spread -- centers on zero at a
+                 consistent scale (also called a z-score)
 """
 
 from __future__ import annotations

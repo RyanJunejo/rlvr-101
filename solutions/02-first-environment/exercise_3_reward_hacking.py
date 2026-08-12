@@ -28,6 +28,12 @@ broken version scores 5/12. Yours must score 12/12.
 No API key needed -- the attacks are canned, so this is deterministic and free.
 
     uv run python modules/02-first-environment/exercise_3_reward_hacking.py
+
+TERMS USED IN THIS FILE
+
+  reward hacking: scoring highly without doing the task you wanted. Not a bug in
+                  the model -- a bug in your scoring function.
+  grader:         informal name for a reward function, used here because that's the job
 """
 
 from __future__ import annotations

@@ -21,6 +21,13 @@ No API key, no network. Everything comes from the installed package.
 Fill in the three TODOs, then run me:
 
     uv run python modules/08-the-stack/exercise_1_read_the_package.py
+
+TERMS USED IN THIS FILE
+
+  harness: the SOLVER: how a model attempts a task (one turn, an agent loop,
+           a coding agent)
+  runtime: WHERE a rollout executes: this machine, a container, a sandbox
+  judge:   scoring by a MODEL rather than by a program
 """
 
 from __future__ import annotations

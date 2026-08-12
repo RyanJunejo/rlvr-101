@@ -2,6 +2,19 @@
 
 **100 points.** Answer in your own words before consulting `solutions/`.
 
+### The vocabulary these questions use
+
+Here so you don't have to leave the page. Fuller entries, with examples, in
+[`GLOSSARY.md`](../../GLOSSARY.md).
+
+| term | in one line |
+|---|---|
+| **v0** | the original verifiers API — plain `import verifiers`, no `.v1` |
+| **completion** | v0's name for the model's reply: a LIST of chat messages |
+| **rubric** | v0's bundle of reward functions with a parallel weights list |
+| **load_environment** | v0's packaging convention — a function with that exact name |
+| **RubricGroup** | the wrapper v0 puts around your rubric, which is why `.funcs` looks empty |
+
 ---
 
 ## Part A — Reading v0 (40 pts)

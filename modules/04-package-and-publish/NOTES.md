@@ -2,6 +2,20 @@
 
 **100 points.** Answer in your own words before consulting `solutions/`.
 
+### The vocabulary these questions use
+
+Here so you don't have to leave the page. Fuller entries, with examples, in
+[`GLOSSARY.md`](../../GLOSSARY.md).
+
+| term | in one line |
+|---|---|
+| **taskset** | a module exporting exactly one `Taskset` subclass via `__all__` |
+| **config** | your `TasksetConfig` subclass — every field is a runner-tunable knob |
+| **standard error** | how much a measurement would jump if you re-ran the whole thing |
+| **confidence interval** | the range the true rate plausibly sits in, given your sample size |
+| **pass@1** | how often the model is right given one attempt. Plain accuracy. |
+| **pass@k** | how often at least one of k attempts succeeds |
+
 ---
 
 ## Part A — Packaging (20 pts)

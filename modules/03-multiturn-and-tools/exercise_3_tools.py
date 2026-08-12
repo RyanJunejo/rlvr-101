@@ -19,6 +19,13 @@ Fill in the two TODOs, then run me:
     uv run python modules/03-multiturn-and-tools/exercise_3_tools.py
 
 No API key needed.
+
+TERMS USED IN THIS FILE
+
+  tool:    a function the model can call mid-conversation
+  Toolset: a class whose @vf.tool methods are exposed to the model
+  schema:  the machine-readable description of a tool's arguments, built from
+           your type hints
 """
 
 from __future__ import annotations

@@ -36,6 +36,11 @@ Two differences deserve attention because they're LESSONS, not just furniture:
 Fill in the two TODOs, then run me:
 
     uv run python modules/06-legacy-v0/exercise_1_v0_env.py
+
+TERMS USED IN THIS FILE
+
+  completion: v0's name for the model's reply -- a LIST of chat messages
+  rubric:     v0's bundle of reward functions with a parallel weights list
 """
 
 from __future__ import annotations

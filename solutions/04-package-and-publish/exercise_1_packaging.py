@@ -17,6 +17,13 @@ group scores the same, and it teaches nothing forever after.
 Fill in the three TODOs, then run me:
 
     uv run python modules/04-package-and-publish/exercise_1_packaging.py
+
+TERMS USED IN THIS FILE
+
+  taskset: the generator of tasks; a publishable one is a module exporting
+           exactly one Taskset subclass via __all__
+  config:  the public API of your task -- every field is a knob a runner can
+           turn without editing your code
 """
 
 from __future__ import annotations

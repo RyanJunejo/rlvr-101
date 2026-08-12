@@ -67,6 +67,10 @@ Each unit is a folder under `modules/`, containing:
 | `verify.py` | automatic grading of your code | autograder |
 | `NOTES.md` | written questions, with point values | problem set |
 
+Every problem set opens with a table of the terms its questions use, and every
+exercise file ends with the same for its own code, so the vocabulary is where
+you need it rather than in a file you have to keep flipping to.
+
 Fully worked solutions are in `solutions/`, mirroring the same structure. They
 explain *why* each piece is the way it is, and are worth reading even after your
 code runs.

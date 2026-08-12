@@ -3,6 +3,20 @@
 **100 points.** This unit is mostly reading, so the questions are mostly
 synthesis. Answer in your own words.
 
+### The vocabulary these questions use
+
+Here so you don't have to leave the page. Fuller entries, with examples, in
+[`GLOSSARY.md`](../../GLOSSARY.md).
+
+| term | in one line |
+|---|---|
+| **harness** | the SOLVER: how a model attempts a task (one turn, agent loop, coding agent) | <!-- prose-ok: harness is the verifiers v1 API term -->
+| **runtime** | WHERE a rollout executes: this machine, a container, a sandbox |
+| **judge** | scoring by a MODEL rather than by a program |
+| **Lab** | Prime Intellect's hosted platform: training, evals, adapter deployment |
+| **adapter** | the small set of trained weights (a LoRA) you deploy after training |
+| **RLM** | Recursive Language Model: context as a variable, sub-agents as function calls |
+
 ---
 
 ## Part A — The stack (30 pts)

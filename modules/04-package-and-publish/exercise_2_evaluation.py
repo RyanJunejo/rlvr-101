@@ -24,6 +24,12 @@ No API key needed. Everything here is arithmetic on numbers you already have.
 Fill in the three TODOs, then run me:
 
     uv run python modules/04-package-and-publish/exercise_2_evaluation.py
+
+TERMS USED IN THIS FILE
+
+  standard error:      how much a measurement would jump around if you re-ran it
+  confidence interval: the range your true rate plausibly sits in, given n
+  statistical power:   the chance of detecting a real difference if one exists
 """
 
 from __future__ import annotations

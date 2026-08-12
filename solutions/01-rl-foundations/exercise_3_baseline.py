@@ -2,6 +2,16 @@
 ANSWER KEY — Exercise 3, baselines and variance.
 
     uv run python solutions/01-rl-foundations/exercise_3_baseline.py
+
+TERMS USED IN THIS FILE
+
+  estimator: any recipe for guessing a quantity from a limited sample
+  unbiased:  correct ON AVERAGE over infinite samples -- a single sample can
+             still be wildly off. Both versions here are unbiased.
+  variance:  how much an estimator jumps around from sample to sample. This is
+             the thing the baseline reduces, and what you'll measure.
+  baseline:  a number subtracted from the reward before the update
+  advantage: reward minus baseline: how much better than typical this was
 """
 
 from __future__ import annotations

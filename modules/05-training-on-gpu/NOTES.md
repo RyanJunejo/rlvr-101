@@ -3,6 +3,24 @@
 **100 points.** Parts A–C can be answered from the labs and lecture notes. Part D
 needs an actual training run.
 
+### The vocabulary these questions use
+
+Here so you don't have to leave the page. Fuller entries, with examples, in
+[`GLOSSARY.md`](../../GLOSSARY.md).
+
+| term | in one line |
+|---|---|
+| **inference** | the process that generates the model's answers (vLLM) |
+| **orchestrator** | the process that hands out questions and runs your scoring |
+| **trainer** | the process that computes gradients and updates weights |
+| **step** | one full cycle: generate, score, update |
+| **batch size** | questions per step |
+| **group size** | answers sampled per question. The `G` from Unit 01. |
+| **learning rate** | how big each weight update is |
+| **checkpoint** | a saved snapshot of the weights, so a crash doesn't cost the run |
+| **renderer** | how text becomes tokens; client-side so training and generation agree |
+| **LoRA** | training a small set of extra parameters instead of the whole model |
+
 ---
 
 ## Part A — The system (20 pts)
