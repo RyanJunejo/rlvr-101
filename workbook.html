@@ -404,7 +404,7 @@
     <li><a href="#m3"><span class="n">03</span><span>Conversations &amp; tools</span></a></li>
     <li><a href="#m4"><span class="n">04</span><span>Package &amp; publish</span></a></li>
     <li><a href="#m5"><span class="n">05</span><span>Training for real</span></a></li>
-    <li><a href="#m6"><span class="n">06</span><span>The new API</span></a></li>
+    <li><a href="#m6"><span class="n">06</span><span>The legacy API</span></a></li>
     <li><a href="#m7"><span class="n">07</span><span>Capstone</span></a></li>
   </ol>
   <p class="nav-label">Reference</p>
@@ -747,11 +747,11 @@
       <div class="mod-n">02</div>
       <div>
         <div class="mod-head"><h3>Writing the score</h3><span class="chip ready">Ready</span></div>
-        <p>Build a real task with <code>verifiers</code>, then break it on purpose.</p>
+        <p>Build a task on <code>verifiers.v1</code> &#8212; data, async reward methods, a trace to score &#8212; then break a grader on purpose.</p>
         <ul>
-          <li>Where a scoring function's weights tip over, and a model that computes nothing becomes optimal</li>
-          <li>Twelve adversarial replies. The obvious scoring function survives five</li>
-          <li>Runs offline &#8212; no API key needed for the main exercise</li>
+          <li>One command runs your task against a live model; <code>-r</code> in the CLI is the group size from Unit 01</li>
+          <li>Where weight ratios tip over, and a model that computes nothing becomes optimal</li>
+          <li>Twelve adversarial replies. The obvious grader survives five; yours must survive all twelve</li>
         </ul>
         <div class="track"><input type="checkbox" id="c2"><label for="c2">Done</label></div>
       </div>
@@ -761,7 +761,7 @@
       <div class="mod-n">03</div>
       <div>
         <div class="mod-head"><h3>Conversations &amp; tools</h3><span class="chip ready">Ready</span></div>
-        <p>Multi-turn tasks, where the model's move changes what it sees next. Build a guessing game, then meet the problem that dominates multi-turn RL.</p>
+        <p>An <code>Env</code> plays the other side of the conversation; your graders replay the transcript. Then the problem that dominates multi-turn RL.</p>
         <ul>
           <li>The <b>sparse reward problem</b>: a weak model scores 0.0 on every rollout, every advantage is zero, and it learns <em>nothing</em></li>
           <li>Measured across skill levels &#8212; and the two ends of the table turn out to be the same failure</li>
@@ -776,7 +776,7 @@
       <div class="mod-n">04</div>
       <div>
         <div class="mod-head"><h3>Package, publish, evaluate</h3><span class="chip ready">Ready</span></div>
-        <p>Making your task installable and sharing it. Then the statistics half, which is the one likely to change how you work.</p>
+        <p>The taskset contract &#8212; one class through <code>__all__</code>, config as the public API, a difficulty knob. Then the statistics half, the one likely to change how you work.</p>
         <ul>
           <li>Model A scores 60%, model B scores 75%, n=20. You <b>cannot</b> call a winner &#8212; and you'll compute why</li>
           <li>Two <em>identical</em> models showed a 15-point gap in 34.9% of experiments</li>
@@ -805,12 +805,12 @@
     <div class="mod" id="m6">
       <div class="mod-n">06</div>
       <div>
-        <div class="mod-head"><h3>The redesigned API</h3><span class="chip ready">Ready</span></div>
-        <p>Port your Unit 02 task to v1's taskset / harness / runtime split, and find out what it buys.</p>
+        <div class="mod-head"><h3>The legacy API</h3><span class="chip ready">Ready</span></div>
+        <p>The Hub still carries environments on the original API, and the eval CLI runs them behind <code>--legacy.id</code>. Learn to read them and port one.</p>
         <ul>
-          <li>The motivating case: a task you <em>cannot</em> express in v0</li>
-          <li>Three API details that don't match the published docs, found by reading the source</li>
-          <li>Infinite tasksets &#8212; generate harder questions as the model improves</li>
+          <li>The full v0 &#8594; v1 mapping, one row per concept</li>
+          <li>Two bug classes the current design retired &#8212; and the guard v0 makes your job</li>
+          <li>The port's definition of done: every reply scores identically through both stacks</li>
         </ul>
         <div class="track"><input type="checkbox" id="c6"><label for="c6">Done</label></div>
       </div>
@@ -1075,13 +1075,13 @@
     <dd>How much something jumps around between samples. High variance means you need
       many samples before an average settles down.</dd>
 
-    <dt>Environment</dt>
-    <dd>In this stack: a set of questions, a way to find the answer in a reply, and a
-      scoring function. Bundled together. No simulator involved.</dd>
+    <dt>Task / Taskset</dt>
+    <dd>A task holds one question's ground truth and its scoring methods; a taskset
+      generates tasks, and is what the tools resolve by name. No simulator involved.</dd>
 
-    <dt>Rubric</dt>
-    <dd>Several scoring functions combined with weights, so you can say "correctness is
-      worth five times as much as formatting."</dd>
+    <dt>Trace</dt>
+    <dd>The record of one attempt &#8212; every message and its scores. Reward methods
+      read from it; the model's final text is <code>trace.last_reply</code>.</dd>
 
     <dt>Reward hacking</dt>
     <dd>When the model scores highly without doing the task you wanted. Not a bug in the
@@ -1130,7 +1130,7 @@ uv run python modules/01-rl-foundations/verify.py</code></pre>
 </section>
 
 <footer>
-  All eight units complete: 215 autograded checks, answer keys and worked examples
+  All eight units complete on the current (v1) API: 199 autograded checks, answer keys and worked examples
   throughout. Unit 05's GPU runbook is checkpointed rather than autograded, and
   says so. Plain-language definitions for everything are in
   <code>GLOSSARY.md</code>.

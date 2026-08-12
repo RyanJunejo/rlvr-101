@@ -222,18 +222,33 @@ doing exactly what you asked.
 > Model's discovery: reply with *every number from 380 to 400*. Scores 1.0
 > every time, and it's far easier than multiplying.
 
-**Rubric**
-A bundle of reward functions with weights, combined into one score. Lets you say
-"correctness is worth 5× as much as formatting."
+**Task / TaskData**
+The two halves of a scoring setup in `verifiers.v1`. `TaskData` holds one
+question's ground truth (prompt, answer); the `Task` carries the scoring, as
+`@vf.reward` methods. Weights ride on the decorators — "correctness is worth 5×
+as much as formatting" is `@vf.reward` next to `@vf.reward(weight=0.2)`.
 
-**Parser**
-The piece that extracts the model's actual answer out of its rambling, so you can
-check it. Turns `"Let me think... so 17 × 23 = 391.\nAnswer: 391"` into `"391"`.
+**Taskset**
+The generator of tasks — the thing the eval CLI and the trainer resolve by
+name. A publishable taskset is a module exporting exactly one `Taskset`
+subclass through `__all__`, with its config fields as the public knobs.
 
-**Environment**
-In this stack, an environment is just three things bundled together: a dataset of
-prompts, an optional parser, and a rubric. That's it. Much humbler than the word
-suggests — no simulator, no physics.
+**Trace**
+The record of one attempt: every message, every tool call, the rewards. Your
+reward methods read from it — the model's final text is `trace.last_reply`.
+
+**Environment (Env)**
+The code that plays the other side of a multi-turn conversation — its `run()`
+takes the model's move, replies, repeats. Much humbler than the word suggests:
+no simulator, no physics. For single-turn tasks there's no Env to write at all.
+
+**Rubric** *(legacy)*
+The old API's bundle of reward functions with a parallel weights list. You'll
+meet it inside v0 environments on the Hub; Unit 06 maps it to what you know.
+
+**Parser** *(legacy)*
+The old API's answer-extractor. In current code that job is a few lines of
+regex inside your reward method.
 
 **Eval**
 Running a model against an environment to measure how good it is, without

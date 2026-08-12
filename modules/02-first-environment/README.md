@@ -2,22 +2,20 @@
 
 ### Lecture notes
 
-> **Time:** 3–4 hours · **Prerequisites:** Unit 01 · **Needs:** an API key
-> (labs 1–2 only; the main lab runs offline)
+> **Time:** 3–4 hours · **Prerequisites:** Unit 01 · **Needs:** nothing for the
+> labs; an API key for the live run at the end
 >
 > **By the end of this unit you will be able to:**
-> 1. Build a working task environment with `verifiers` and score a real model
->    against it.
-> 2. Write reward functions using the library's argument-injection convention.
-> 3. Combine several reward components with weights, and explain why only the
->    *ratio* between them matters.
-> 4. Identify how a scoring function can be exploited, and rewrite it to
->    survive an adversarial suite.
-> 5. Explain why an exploitable reward is categorically worse than a noisy one,
->    and describe how to catch reward hacking during a real training run.
+> 1. Build a task with `verifiers.v1`: the data, the scoring, and a trace to
+>    score.
+> 2. Write reward methods with the argument-injection convention, and explain
+>    why they must be `async`.
+> 3. Combine components with weights, and explain why only the *ratio* matters.
+> 4. Run your task against a live model with the eval CLI and read the output.
+> 5. Break a scoring function the way an optimizer would, then fix it to
+>    survive a 12-attack suite.
 >
-> **Deliverables:** 3 labs (`exercise_*.py`), autograder green, problem set in
-> `NOTES.md`.
+> **Deliverables:** 3 labs, autograder green, problem set in `NOTES.md`.
 
 New terms are defined as they appear; [`GLOSSARY.md`](../../GLOSSARY.md) has them
 all in one place.
@@ -26,221 +24,202 @@ all in one place.
 
 ## 1. Where we are
 
-Unit 01 answered "how do you train a model on a score?" The answer turned out
-to be short: sample answers, compare each one to the average of others from the
+Unit 01 answered "how do you train a model on a score?" The answer turned out to
+be short: sample answers, compare each one to the average of others from the
 same question, make the better-than-average ones more likely.
 
-Notice what that leaves wide open. **Everything now depends on the score.** The
-training algorithm has no opinion about what's good — it just faithfully
-maximizes whatever number you hand it.
+Notice what that leaves wide open. Everything now depends on the score. The
+training algorithm has no opinion about what's good — it faithfully maximizes
+whatever number you hand it.
 
 So the interesting question is no longer "which algorithm?" It's "what exactly am
 I rewarding?" That's this unit, and honestly it's where the rest of the
 difficulty in this field lives.
 
-## 2. What an environment actually is
+## 2. The three pieces of a task
 
-`verifiers` is Prime Intellect's library for writing these scoring setups. The
-thing you build is called an **environment**, which is a grander word than it
-deserves. An environment is three things in a bundle:
-
-```
-  a dataset          a parser              a rubric
-  of questions   →   pulls the answer  →   scores it   →   a number
-  (and answers)      out of the reply
-```
-
-That's it. No simulator, no physics. Questions, a way to find the answer in the
-model's rambling, and a function that scores it.
-
-In code:
+The tool is `verifiers`, Prime Intellect's library, and we use its current API:
 
 ```python
-env = vf.SingleTurnEnv(
-    dataset=ds,                 # questions and reference answers
-    system_prompt="...",        # instructions given to the model
-    parser=parser,              # optional; finds the answer in the reply
-    rubric=rubric,              # the scoring functions
-)
+import verifiers.v1 as vf      # note the .v1 — plain `import verifiers` is the
+                               # legacy API (Unit 06), and the two don't mix
 ```
 
-Your dataset needs two columns, `question` and `answer`. The library builds the
-actual prompt for you.
+A scoring setup splits into three objects, each with one job:
 
-**The design idea worth pausing on:** that same object can be used three
-ways without changing anything: as a **test** (run a model against it, see how it
-scores), as a way to **generate training data** (keep the good answers), or as a
-**training task** (feed the scores to the trainer). A test you can train against
-*is* a training task. There's no difference, which is why the library doesn't
-distinguish them.
+```
+  TaskData          Task                    Trace
+  ────────          ────                    ─────
+  one question:     how to score it:        one attempt:
+  prompt, answer    reward methods          every message, scored
+```
 
-## 3. Writing a scoring function
-
-It's a normal Python function that returns a number:
+**`TaskData`** holds the ground truth for one question. You subclass it and add
+what your task needs:
 
 ```python
-def correct_answer(completion, answer, **kwargs) -> float:
-    ...
+class MathData(vf.TaskData):
+    answer: str
 ```
 
-The library looks at your function's parameter names and passes in whatever you
-asked for. Ask for `completion` and `answer` and you get those. Ask for nothing
-extra and you get nothing extra. Always include `**kwargs` so you don't break
-when the library offers more than you wanted.
+It's frozen — immutable — because it gets serialized verbatim into the trace
+file. What you read in `traces.jsonl` after a run is exactly what the task was
+built from.
 
-**One thing that trips up everyone exactly once:** `completion` is not a string.
-It's a list of chat messages. The model's text is `completion[-1]["content"]`.
-
-You can combine several scoring functions with weights:
+**`Task`** carries the scoring, as decorated methods:
 
 ```python
-rubric = vf.Rubric(
-    funcs=[correct_answer, follows_format],
-    weights=[1.0, 0.2],
-)
+class MathTask(vf.Task[MathData, vf.State, vf.TaskConfig]):
+    @vf.reward
+    async def correct_answer(self, task: MathData, trace: vf.Trace) -> float:
+        matches = ANSWER_RE.findall(trace.last_reply)
+        if not matches:
+            return 0.0
+        return 1.0 if matches[-1].strip() == task.answer else 0.0
 ```
 
-The final score is the weighted sum, and each function's score is also reported
-separately — which is how you debug. When the score moves, you can see *which
-part* moved.
+Three conventions to absorb, each of which is a lab-1 TODO:
 
-**The weights are where the judgment lives.** Remember from Unit 01 that GRPO
-subtracts the group average and divides by the spread, so multiplying every
-weight by 10 changes literally nothing. The absolute numbers are meaningless.
-Only the **ratio** matters. `[1.0, 0.2]` says correctness is worth five times as
-much as formatting.
+- **Arguments are injected by name.** Ask for `task` and you get your
+  `MathData`; ask for `trace` and you get the attempt. Name only what you use —
+  a method that takes just `trace` is documenting that it never looks at the
+  answer.
+- **Weights ride on the decorator**: `@vf.reward(weight=0.2)`. There is no
+  separate weights list to keep aligned by position, which retires a real class
+  of bug.
+- **Reward methods must be `async`.** Forget it and scoring raises
+  `An asyncio.Future, a coroutine or an awaitable is required` — an error that
+  nowhere mentions the word async. You will meet this once; better here than on
+  a GPU bill.
 
-Get that ratio wrong and you'll train a model that produces beautifully formatted <!-- prose-ok: ironic -->
-nonsense. Exercise 2 shows you exactly where it tips over.
+**`Trace`** is the record of one attempt. The model's final text is
+`trace.last_reply`; the full transcript is in `trace.nodes`. One flag matters
+when you build traces by hand for testing: each message node carries `sampled`,
+marking whether the *model produced it* or it *arrived with the prompt* (a
+few-shot example, a conversation being continued). `last_reply` reads only
+sampled messages. Forget `sampled=True` and every reward silently returns 0.0 —
+no error, nothing. The flag exists because scoring prompt-supplied text as the
+model's own work would inflate every number you report.
 
-### Running against a real model
+## 3. Running against a real model
 
-One gotcha worth knowing before you hit it. `verifiers` does **not** accept a raw
-`openai.OpenAI` object — it wants its own `ClientConfig`, which describes how to
-reach an endpoint:
+Tasks become runnable through a **taskset** — a generator of tasks that the
+`eval` CLI can find by module name. Lab 1 includes one, written for you (you
+build your own in Unit 04). With it, the live run is one command:
 
-```python
-client = vf.ClientConfig(
-    client_type="openai_chat_completions",
-    api_key_var="OPENAI_API_KEY",          # the NAME of the env var, not the key
-    api_base_url=os.getenv("OPENAI_BASE_URL"),
-)
-results = env.evaluate_sync(client=client, model=model, rollouts_per_example=2)
+```bash
+export $(grep -vE '^#|^$' .env | xargs)
+PYTHONPATH=modules/02-first-environment uv run eval exercise_1_first_task \
+  -m "$MODEL" -n 4 -r 2 --rich False \
+  --client.base-url "$OPENAI_BASE_URL" --client.api-key-var OPENAI_API_KEY \
+  --env.agent.harness.id null -o outputs/first-task
 ```
 
-Note `api_key_var` takes the *name* of the environment variable rather than the
-secret itself. That's deliberate: your key never gets passed around or written
-into a training config.
+Three details that will save you time:
 
-The result is a **dict**, not an object. Per-rollout records live under
-`results["outputs"]`, each with `reward`, `completion`, `metrics`, and more:
+- **The key must be exported.** Setting it in your shell is not enough:
+  `--client.api-key-var` names an environment variable the eval process reads —
+  your secret never appears in a config file, but it does have to be in the
+  process's environment. Symptom of forgetting: every rollout fails with
+  `upstream 401`.
+- **`-r 2` is the group size.** The CLI's own help text calls it "the trainer's
+  group size" — it is exactly the *G* from Unit 01.
+- **`--env.agent.harness.id null`** means no agent loop: the model answers once.
+  That's all a single-turn task needs.
 
-```python
-rewards = [o["reward"] for o in results["outputs"]]
-```
+The run directory holds `config.toml` (the resolved run — good for seeing what
+your flags actually did), `eval.log` (one line per rollout with its reward), and
+`traces.jsonl` (every attempt in full).
 
-### Rollouts fail, and your reward function has to survive it
-
-A dropped connection, a timeout, a content filter — and `completion` comes back
-as an empty list. Writing `completion[-1]["content"]` then raises `IndexError`
-from inside your reward function, and `verifiers` reports it as
-`Error calling reward function`, which tells you nothing about the real cause.
-
-Guard it:
-
-```python
-def reply_text(completion) -> str:
-    return completion[-1]["content"] if completion else ""
-```
-
-A failed rollout now scores 0.0 cleanly, which is right: it didn't answer, so it
-gets no credit.
-
-This isn't hypothetical. While this course was being written the endpoint threw
-SSL errors mid-run and every rollout came back empty. The reward function crashed
-on the first one.
+Rollouts fail in real life — a dropped connection, a timeout, a bad key — and a
+failed rollout appears as `ok: false` with an `errors` list and no sampled
+messages. Your rewards score it 0.0 without crashing, because `last_reply` is
+just the empty string. Check `stop_condition` before believing a 0.0 meant
+"wrong answer."
 
 ## Labs
 
 | file | what you build |
 |---|---|
-| `exercise_1_first_env.py` | a working environment on arithmetic, scored against a real model |
-| `exercise_2_rubric.py` | two scoring functions combined, and where the weights break |
-| `exercise_3_reward_hacking.py` | **the important one.** Break a scoring function, then fix it. |
+| `exercise_1_first_task.py` | data, task, rewards, and a trace to score them on |
+| `exercise_2_weights.py` | two components, and where their ratio tips over |
+| `exercise_3_reward_hacking.py` | **the important one.** Break a grader, then fix it. |
 
-Exercises 1 and 2 need your `.env` set up. Exercise 3 doesn't — it runs offline.
+All three run offline and deterministic. The live run in section 3 is the
+optional coda to lab 1.
 
 ## 4. About the reward-hacking lab
 
 Let me set this one up properly, because it's the thing I'd most want you to
-take away from the whole workbook.
+take away from the whole course.
 
-You'll be handed a scoring function that looks completely reasonable:
+You'll be handed a scoring method that looks completely reasonable:
 
 ```python
-def sloppy_correctness(completion, answer, **kwargs) -> float:
-    return 1.0 if answer in completion[-1]["content"] else 0.0
+@vf.reward
+async def sloppy_correctness(self, task, trace) -> float:
+    return 1.0 if task.answer in trace.last_reply else 0.0
 ```
 
-Read it in English: *"did the right answer appear anywhere in the model's
-reply?"* That seems like a fine definition of correct. Versions of this ship in
-real codebases.
+Read it in English: *"did the right answer appear anywhere in the reply?"* That
+seems like a fine definition of correct. Versions of this ship in real
+codebases.
 
 It is badly broken, and you'll watch it give full marks to:
 
 - a reply that says the answer is **not** 391,
 - a reply that guesses five numbers at once,
 - a reply that just lists every number from 380 to 400,
-- a reply saying `3912` when the answer was `391` (because "391" *is* inside
-  "3912").
+- a reply saying `3912` when the answer was `391` (because `"391" in "3912"`).
 
-**This matters more than a list of bugs.**
-
-A scoring function that's merely *noisy* is survivable — random errors average
-out over thousands of examples. A scoring function that's **exploitable** does
-not average out, because training is a search process and its entire job is
-finding the highest score available.
+Why this matters more than a list of bugs: a scoring function that's
+merely *noisy* is survivable — random errors average out over thousands of
+examples. A scoring function that's **exploitable** does not average out,
+because training is a search process and its entire job is finding the highest
+score available.
 
 Any hole you leave, it will find and drive through — because "list every number
-from 380 to 400" *does* score higher than "carefully multiply 17 by
+from 380 to 400" genuinely *does* score higher than "carefully multiply 17 by
 23," and it's much easier. The model isn't cheating. It's doing precisely what
 you asked.
 
-Trace what happens. One answer in a group stumbles onto the enumeration trick and
-scores 1.0, while the careful answers score 0.0 on an arithmetic slip. From
+Trace what happens. One answer in a group stumbles onto the enumeration trick
+and scores 1.0, while the careful answers score 0.0 on an arithmetic slip. From
 Unit 01: that gives enumeration a **positive advantage**, so it gets reinforced
 and sampled more often, so it wins more groups. A few hundred steps later you
-have a model that has completely abandoned arithmetic — and a training curve that
-looks like a triumph the entire time.
+have a model that has completely abandoned arithmetic — and a training curve
+that looks like a triumph the entire time.
 
-You wouldn't notice from the score. That's the whole problem. **The score is the
-thing being hacked.**
+You wouldn't notice from the score. That's the whole problem. **The score is
+the thing being hacked.**
 
-Then you'll fix it, and your fix gets graded against twelve adversarial replies.
-The broken version scores 5/12.
+Then you'll fix it, and your fix gets graded against twelve adversarial
+replies. The broken version scores 5/12.
 
 ## 5. How you catch this in real life
 
-- **Read the actual model outputs.** Not the average score — the text. Regularly.
-  Everyone says this and almost nobody does it.
-- **Watch how long the replies get.** Score climbing while answers get longer and
-  stranger is the classic signature.
+- **Read the actual model outputs.** `traces.jsonl` holds every attempt in
+  full. Not the average score — the text. Regularly.
+- **Watch how long the replies get.** Score climbing while answers get longer
+  and stranger is the classic signature.
 - **Keep a separate test your scoring function can't touch**, and check the two
   agree.
-- **Assume every scoring function you write has a hole in it**, because it does.
-  The only question is whether you find it before training does.
+- **Assume every scoring function you write has a hole in it**, because it
+  does. The only question is whether you find it before training does.
 
 ## Optional reading
 
-- The `verifiers` source: `envs/environment.py` and `rubrics/rubric.py`. Both
-  readable in one sitting, and more accurate than the docs.
+- The installed source: `verifiers/v1/task.py`, `taskset.py`, and `trace.py`.
+  Three files, each readable in a sitting, and more accurate than any docs.
+- The [lab-cookbook](https://github.com/PrimeIntellect-ai/lab-cookbook) guides
+  01–02 — Prime Intellect's own walkthrough of the same ground.
 - **"Concrete Problems in AI Safety"** (arXiv:1606.06565), section 3 only — the
-  reward hacking section. Written years before any of this tooling existed and it
-  predicts every failure you're about to see.
+  reward hacking section. Written years before any of this tooling existed and
+  it predicts every failure you're about to see.
 
 ## Running
 
 ```bash
-uv run python modules/02-first-environment/exercise_3_reward_hacking.py
+uv run python modules/02-first-environment/exercise_1_first_task.py
 uv run python modules/02-first-environment/verify.py
 ```

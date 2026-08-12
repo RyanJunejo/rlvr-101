@@ -35,15 +35,17 @@ You want the setting where the model wins *sometimes*.
 
 ---
 
-## 2. What the environment does with a message
+## 2. One turn through the Env
 
 ```
 model says:  "Hmm, let me split the range.\nGuess: 50"
-             │
-             ├─ GUESS_RE finds ["50"]  → take the last → 50
-             ├─ state["guesses"].append(50)      → [50]
-             ├─ 50 > 42, so:
-             └─ return [UserMessage("Too high.")]
+             |
+             |  segment = await interaction.turn(...)   <- run() has the reply
+             |  parse_guess(segment.last_reply)  -> 50
+             |  50 > 42, so respond(50, 42)      -> "Too high."
+             |
+             v
+             segment = await interaction.turn("Too high.")   <- next move arrives
 ```
 
 Two edge cases that matter:
@@ -52,27 +54,36 @@ Two edge cases that matter:
 
 ```
 model says:  "I'm not sure where to start."
-             → GUESS_RE finds []
-             → record nothing, reply with a format reminder
+             -> parse_guess returns None
+             -> feedback: a format reminder; nothing recorded
 ```
 
-We don't crash and we don't record a guess — but the turn is still consumed,
-because `max_turns` counts model messages. So rambling costs the model a turn.
-That's the right incentive, and it came for free.
+We don't crash and nothing counts as a guess — but the exchange still consumed a
+turn, so rambling costs the model one of its seven. The right incentive, for
+free.
 
 **Two guesses in one message.**
 
 ```
 model says:  "Guess: 5\nActually, wait.\nGuess: 42"
-             → GUESS_RE finds ["5", "42"] → take the LAST → 42
+             -> parse_guess returns 42 (the LAST match)
 ```
 
-Same rule as Unit 02: models restate and correct themselves, and the final
-commitment is the real one. Taking the *first* match would fail a model that
-reasoned its way to the right answer — a false negative, which is the worst kind
-of scoring bug because it teaches the model that being right doesn't pay.
+Same rule as Unit 02's answer slot: models restate and correct themselves, and
+the final commitment is the real one. Taking the *first* match would fail a
+model that reasoned its way to the right answer — a false negative, the worst
+kind of grading bug.
 
----
+### And the scoring replays it all
+
+```
+rewards: {'solved': 1.0}      metrics: {'num_guesses': 7.0}
+```
+
+`solved` never reads the Env's feedback. It re-parses every guess from
+`trace.assistant_messages` and compares against `task.answer` — so a feedback
+bug in the Env couldn't corrupt the score, and the whole thing tests offline on
+hand-built traces.
 
 ## 3. The shaped reward, computed
 
@@ -149,37 +160,33 @@ that can't yet do the task, find something continuous to measure.**
 
 ## 5. What the model actually sees when you give it a tool
 
-Your Python function:
+Your Python method:
 
 ```python
-def calculator(expression: str) -> str:
-    """Evaluate an arithmetic expression and return the result.
+class CalcToolset(vf.Toolset[vf.ToolsetConfig, vf.State]):
+    @vf.tool
+    def calculator(self, expression: str) -> str:
+        """Evaluate an arithmetic expression and return the result.
 
-    Supports + - * / ** and parentheses. Use this for any arithmetic instead of
-    calculating in your head. Example: calculator("17 * 23") returns "391".
-    """
+        Supports + - * / ** and parentheses. Use this for any arithmetic
+        instead of calculating in your head. Example: calculator("17 * 23")
+        returns "391".
+        """
 ```
 
-What the library generates and sends to the model:
+What the library registers, straight from the source of `Toolset.register()`:
 
-```
-name:        calculator
-description: 'Evaluate an arithmetic expression and return the result.
-
-              Supports + - * / ** and parentheses. Use this for any arithmetic
-              instead of calculating in your head. Example: calculator("17 * 23")
-              returns "391".'
-parameters:  {'properties': {'expression': {'title': 'Expression',
-                                            'type': 'string'}},
-              'required': ['expression'],
-              'type': 'object',
-              'additionalProperties': False}
+```python
+mcp.add_tool(
+    self._with_state(fn),
+    name=getattr(fn, "tool_name", None) or fn.__name__,
+    description=(fn.__doc__ or "").strip() or None,
+)
 ```
 
-Your docstring, verbatim. Your type hint, turned into a schema.
-
-Your docstring is prompt text. "Does math" and the docstring above produce
-measurably different tool-use behaviour from the same model.
+Your docstring, verbatim, is the description. Your signature becomes the schema.
+"Does math" and the docstring above produce measurably different tool use from
+the same model.
 
 ### Error messages are training data
 
@@ -188,42 +195,37 @@ calculator('17 * 23')          -> '391'
 calculator('hello')            -> "error: only numbers and + - * / ** are
                                    allowed. Provide a plain arithmetic
                                    expression using only numbers and
-                                   + - * / ** and parentheses, for example
-                                   '2 * (3 + 4)'."
+                                   + - * / ** and parentheses, e.g. '2 * (3 + 4)'."
 calculator("__import__('os')") -> "error: only numbers and + - * / ** are
                                    allowed. ..."
 ```
 
 Whatever you return becomes the model's next turn, so a good error message is a
-chance for it to self-correct. Notice the message says what *is* allowed, not
-just what went wrong — `"invalid syntax"` gives the model nothing to act on.
+chance to self-correct. The message names what IS allowed — `"invalid syntax"` alone gives the
+model nothing to act on.
 
-And note the third case returns an error rather than executing. **Never
-`eval()` model output.** During RL this is worse than usual: the model is
-actively searching for inputs that maximise a score, which makes it an automated
-fuzzer pointed at your tool.
-
----
+And the third case returns an error rather than executing. Never `eval()` model
+output: during RL the model is actively searching for inputs that maximize a
+score, which makes it an automated fuzzer pointed at your tool.
 
 ## 6. Free instrumentation
 
-Building a `ToolEnv` gives you monitoring you didn't ask for:
+The game task records a metric beside its reward:
 
-```
-  source rubric              metric                weight
-  -------------------------------------------------------
-  Rubric                     correct_answer           1.0
-  MultiTurnMonitorRubric     num_turns                0.0
-  ToolMonitorRubric          total_tool_calls         0.0
-  ToolMonitorRubric          calculator_calls         0.0
+```python
+@vf.metric
+async def num_guesses(self, trace) -> float:
+    ...
 ```
 
-Weight `0.0` means these don't affect the score — they're diagnostics. Watch them
-during training. A model whose `calculator_calls` climbs steadily has usually
-found something in your scoring that pays for calling tools, and you want to know
-that before it has had 500 steps to perfect the habit.
+```
+rewards: {'solved': Reward(score=1.0, weight=1.0)}
+metrics: {'num_guesses': 7.0}
+```
 
-**A structural note.** Your rubric got wrapped in a `RubricGroup`, so
-`env.rubric.funcs` is empty and the real functions live in `env.rubric.rubrics`.
-Worth knowing before you go looking for your own reward function and conclude it
-vanished.
+A metric is recorded, never weighted — it can't affect training, so it's free
+instrumentation. Watch it anyway. In Unit 05, a model whose `num_guesses` sits
+near 7 is scanning the range instead of searching it, and a model whose tool
+calls climb steadily has usually found something in your scoring that pays for
+calling tools. You want to know either fact before it has had 500 steps to
+perfect the habit.

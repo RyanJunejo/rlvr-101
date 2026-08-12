@@ -29,68 +29,83 @@ def _skip(g: Grader, names: list[str], why: str) -> None:
 def check_lab1(g: Grader) -> None:
     print(f"\n{DIM}-- lab 1: packaging --{RESET}")
     try:
+        import verifiers.v1 as vf
+
         import exercise_1_packaging as l1
-        import verifiers as vf
     except Exception as e:
         _skip(g, ["lab 1 imports"], f"{type(e).__name__}: {e}")
         return
     g.check("lab 1 imports", True)
 
     try:
-        env = l1.load_environment()
-        g.check("load_environment() works with NO arguments", isinstance(env, vf.Environment),
-                f"returned {type(env).__name__}; tooling calls it bare to inspect your "
-                f"task, so every argument needs a default")
-        ds = env.get_dataset()
-        g.check("the default builds 100 problems", len(ds) == 100, f"got {len(ds)} rows")
-        g.check("the dataset has the required columns",
-                {"question", "answer"} <= set(ds.column_names), f"got {ds.column_names}")
-        g.check("a prompt column was built by the library",
-                "prompt" in ds.column_names, f"got {ds.column_names}")
+        cfg = l1.MultConfig()
+        g.check("MultConfig() works bare (every field has a default)",
+                True, "")
+        fields = l1.MultConfig.model_fields
+        g.check("the config declares num_tasks and digits",
+                {"num_tasks", "digits"} <= set(fields), f"fields: {sorted(fields)}")
+        g.check("defaults are num_tasks=64, digits=2",
+                cfg.num_tasks == 64 and cfg.digits == 2,
+                f"got num_tasks={getattr(cfg, 'num_tasks', None)}, "
+                f"digits={getattr(cfg, 'digits', None)}")
     except NotImplementedYet as e:
-        _skip(g, ["load_environment is correct"], f"still TODO: {e}")
+        _skip(g, ["MultConfig is correct"], f"still TODO: {e}")
         return
     except Exception as e:
-        _skip(g, ["load_environment is correct"], f"{type(e).__name__}: {e}")
+        _skip(g, ["MultConfig is correct"], f"{type(e).__name__}: {e}")
         return
 
     try:
-        g.check("num_problems is respected",
-                len(l1.load_environment(num_problems=7).get_dataset()) == 7,
-                "load_environment(num_problems=7) should yield 7 rows")
+        import inspect
 
-        a = list(l1.load_environment(num_problems=5, seed=42).get_dataset()["question"])
-        b = list(l1.load_environment(num_problems=5, seed=42).get_dataset()["question"])
-        c = list(l1.load_environment(num_problems=5, seed=99).get_dataset()["question"])
-        g.check("the same seed gives the same questions", a == b,
-                "a published task must be reproducible, or two people 'evaluating the "
-                "same environment' aren't")
-        g.check("a different seed gives different questions", a != c, "expected variation")
-
-        g.check("each call returns a FRESH object",
-                l1.load_environment(num_problems=2) is not l1.load_environment(num_problems=2),
-                "returning a shared module-level object means concurrent training runs "
-                "share mutable state")
-
-        env_kw = l1.load_environment(num_problems=3, max_workers=7)
-        g.check("**kwargs are forwarded to the environment",
-                getattr(env_kw, "max_workers", None) == 7,
-                "callers (including prime-rl) pass settings you didn't anticipate; "
-                "forward **kwargs rather than swallowing them")
+        g.check("load() is a generator, not a list",
+                inspect.isgeneratorfunction(l1.MultTaskset.load),
+                "use `yield` so tasks are built as they're consumed")
+        tasks = list(l1.MultTaskset(l1.MultConfig(num_tasks=6)))
+        g.check("num_tasks is respected", len(tasks) == 6, f"got {len(tasks)}")
+        g.check("generated answers are correct",
+                all(str(eval(t.data.prompt.replace("What is ", "").rstrip("?")))  # noqa: S307
+                    == t.data.answer for t in tasks),
+                "the answer must match the question it was generated with")
+        four = list(l1.MultTaskset(l1.MultConfig(num_tasks=3, digits=4)))
+        g.check("digits controls difficulty",
+                all(len(str(int(n))) == 4
+                    for t in four
+                    for n in t.data.prompt.replace("What is ", "").rstrip("?").split(" * ")),
+                f"digits=4 should produce 4-digit operands; got "
+                f"{four[0].data.prompt!r}")
+        again = [t.data.prompt for t in l1.MultTaskset(l1.MultConfig(num_tasks=5))]
+        first = [t.data.prompt for t in l1.MultTaskset(l1.MultConfig(num_tasks=5))]
+        g.check("generation is seeded (reproducible)", again == first,
+                "two people running 'the same' taskset must see the same questions")
     except NotImplementedYet as e:
-        _skip(g, ["load_environment handles arguments"], f"still TODO: {e}")
+        _skip(g, ["MultTaskset.load is correct"], f"still TODO: {e}")
+        return
     except Exception as e:
-        _skip(g, ["load_environment handles arguments"], f"{type(e).__name__}: {e}")
+        _skip(g, ["MultTaskset.load is correct"], f"{type(e).__name__}: {e}")
+        return
+
+    try:
+        from verifiers.v1.utils.loaders import taskset_class
+
+        cls = taskset_class("exercise_1_packaging")
+        g.check("the module resolves through verifiers' own loader",
+                cls is l1.MultTaskset,
+                f"taskset_class() found {cls!r}; __all__ must export exactly the "
+                f"one Taskset subclass")
+    except Exception as e:
+        _skip(g, ["the loader resolves the module"], f"{type(e).__name__}: {e}")
 
     try:
         txt = l1.make_pyproject("mult-task")
         g.check("pyproject declares a [project] section", "[project]" in txt, f"got:\n{txt[:200]}")
         g.check("pyproject sets the name", 'name = "mult-task"' in txt.replace("'", '"'),
-                "expected name = \"mult-task\"")
+                'expected name = "mult-task"')
         g.check("pyproject sets a version", "version" in txt, "expected a version field")
-        g.check("pyproject declares verifiers as a dependency", "verifiers" in txt,
-                "someone else installs this on a machine you've never seen; anything "
-                "undeclared becomes an ImportError in their training run")
+        g.check("pyproject pins a verifiers floor", "verifiers>=" in txt.replace(" ", ""),
+                "declare verifiers with a version floor -- this course found three "
+                "API behaviors that changed between releases, and your package "
+                "inherits every one")
     except NotImplementedYet as e:
         _skip(g, ["make_pyproject is correct"], f"still TODO: {e}")
     except Exception as e:

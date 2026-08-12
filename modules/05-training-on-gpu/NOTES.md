@@ -37,10 +37,9 @@ Why?
 
 > 
 
-**B4. (10 pts)** The config uses `taskset`, `harness` and `runtime` — the Unit 06
-vocabulary — even though most published environments are still v0. What does
-`harness.id = "null"` mean for this particular task, and when would you need
-something else?
+**B4. (10 pts)** What does `harness.id = "null"` mean for this particular task,
+and what kind of task would need something else? (You've used both settings —
+Unit 02's math task and Unit 03's guessing game.)
 
 > 
 

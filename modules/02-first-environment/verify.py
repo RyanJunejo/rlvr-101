@@ -1,14 +1,15 @@
 """
-Module 02 self-check.
+Unit 02 autograder.
 
     uv run python modules/02-first-environment/verify.py
 
-Runs entirely offline -- no API key needed. Exercise 1's live eval is separate;
-here we only check that the pieces are correct.
+Runs offline. No API key needed.
 """
 
 from __future__ import annotations
 
+import asyncio
+import inspect
 import sys
 from pathlib import Path
 
@@ -19,206 +20,206 @@ sys.path.insert(0, str(HERE))
 from common.grading import DIM, RESET, Grader, NotImplementedYet, report  # noqa: E402
 
 
-def _msg(text: str) -> list[dict]:
-    return [{"role": "assistant", "content": text}]
-
-
 def _skip(g: Grader, names: list[str], why: str) -> None:
     for n in names:
         g.check(n, False, why)
 
 
-def check_ex1(g: Grader) -> None:
-    print(f"\n{DIM}-- exercise 1: first environment --{RESET}")
+def _score(task, trace):
+    asyncio.run(task.score(trace))
+    return {k: v.score for k, v in trace.rewards.items()}
+
+
+def check_lab1(g: Grader) -> None:
+    print(f"\n{DIM}-- lab 1: your first task --{RESET}")
     try:
-        import exercise_1_first_env as ex1
+        import verifiers.v1 as vf
+
+        import exercise_1_first_task as l1
     except Exception as e:
-        _skip(g, ["ex1 imports"], f"{type(e).__name__}: {e}")
+        _skip(g, ["lab 1 imports"], f"{type(e).__name__}: {e}")
         return
-    g.check("ex1 imports", True)
+    g.check("lab 1 imports", True)
 
     try:
-        ds = ex1.build_dataset()
-        cols = set(ds.column_names)
+        fields = l1.MathData.model_fields
+        g.check("MathData declares `answer`", "answer" in fields, f"fields: {sorted(fields)}")
+        g.check("MathData inherits the base fields",
+                {"prompt", "system_prompt", "idx"} <= set(fields),
+                f"expected the TaskData fields to be inherited; got {sorted(fields)}")
+        g.check("MathData is frozen", l1.MathData.model_config.get("frozen") is True,
+                "the base class sets frozen=True; don't override it")
+    except NotImplementedYet as e:
+        _skip(g, ["MathData is correct"], f"still TODO: {e}")
+        return
+    except Exception as e:
+        _skip(g, ["MathData is correct"], f"{type(e).__name__}: {e}")
+        return
+
+    try:
+        from verifiers.v1.utils.decorators import discover_decorated
+
+        task = l1.MathTask(l1.MathData(idx=0, prompt="q", answer="391"))
+        rewards = discover_decorated(task, "reward")
+        names = sorted(fn.__name__ for fn in rewards)
+        g.check("both reward methods are registered",
+                names == ["correct_answer", "has_answer_line"], f"found {names}")
+        for fn in rewards:
+            g.check(f"`{fn.__name__}` is async", inspect.iscoroutinefunction(fn),
+                    "v1 rewards must be `async def`; a sync one raises 'An "
+                    "asyncio.Future, a coroutine or an awaitable is required' at "
+                    "scoring time")
+        weights = {fn.__name__: fn._vf_weight for fn in rewards}
+        g.close("correct_answer has weight 1.0", weights.get("correct_answer", -1), 1.0)
+        g.close("has_answer_line has weight 0.2", weights.get("has_answer_line", -1), 0.2)
+    except NotImplementedYet as e:
+        _skip(g, ["reward methods are correct"], f"still TODO: {e}")
+        return
+    except Exception as e:
+        _skip(g, ["reward methods are correct"], f"{type(e).__name__}: {e}")
+        return
+
+    try:
+        t = l1.MathTask(l1.MathData(idx=0, prompt="q", answer="391"))
+        tr = l1.make_trace(t, "Answer: 391")
+        g.check("make_trace returns a Trace", isinstance(tr, vf.Trace), f"got {type(tr).__name__}")
         g.check(
-            "dataset has `question` and `answer` columns",
-            {"question", "answer"} <= cols,
-            f"got columns {sorted(cols)}; verifiers looks for 'question' and 'answer'",
-        )
-        g.check(
-            "dataset has one row per problem",
-            len(ds) == len(ex1.PROBLEMS),
-            f"expected {len(ex1.PROBLEMS)} rows, got {len(ds)}",
-        )
-        g.check(
-            "dataset does NOT pre-create a `prompt` column",
-            "prompt" not in cols,
-            "verifiers builds `prompt` itself; supplying one makes it silently ignore "
-            "your system_prompt",
+            "the node is marked sampled=True",
+            tr.last_reply == "Answer: 391",
+            f"trace.last_reply is {tr.last_reply!r}. If it's empty, the node is "
+            f"missing sampled=True -- last_reply reads only sampled nodes, so every "
+            f"reward would silently score 0.0.",
         )
     except NotImplementedYet as e:
-        _skip(g, ["build_dataset is correct"], f"still TODO: {e}")
+        _skip(g, ["make_trace is correct"], f"still TODO: {e}")
+        return
     except Exception as e:
-        _skip(g, ["build_dataset is correct"], f"{type(e).__name__}: {e}")
+        _skip(g, ["make_trace is correct"], f"{type(e).__name__}: {e}")
+        return
 
     try:
         cases = [
-            ("Answer: 391", "391", "plain"),
-            ("Answer:   391  ", "391", "extra whitespace"),
-            ("Answer: 391.", "391", "trailing period"),
-            ("Answer: 12\nActually no.\nAnswer: 391", "391", "takes the LAST answer line"),
-            ("no answer line here", "", "returns '' when the format is absent"),
+            ("Answer: 391", "391", 1.0, 1.0, "exact match"),
+            ("17 * 23 = 391.\nAnswer: 391.", "391", 1.0, 1.0, "trailing period"),
+            ("Answer: 3912", "391", 0.0, 1.0, "superset number, right format"),
+            ("The product is 391.", "391", 0.0, 0.0, "answer only in prose"),
+            ("Answer: 12\nWait.\nAnswer: 391", "391", 1.0, 1.0, "last answer wins"),
+            ("no idea", "391", 0.0, 0.0, "nothing at all"),
         ]
-        for text, want, label in cases:
-            got = ex1.extract_final_answer(text)
-            g.check(
-                f"extract_final_answer: {label}",
-                got == want,
-                f"input {text!r} -> expected {want!r}, got {got!r}",
-            )
+        for reply, answer, want_c, want_f, label in cases:
+            t = l1.MathTask(l1.MathData(idx=0, prompt="q", answer=answer))
+            r = _score(t, l1.make_trace(t, reply))
+            g.check(f"scoring via task.score(): {label}",
+                    r.get("correct_answer") == want_c and r.get("has_answer_line") == want_f,
+                    f"reply {reply!r} with answer {answer!r} scored {r}; "
+                    f"expected correct={want_c}, format={want_f}")
     except NotImplementedYet as e:
-        _skip(g, ["extract_final_answer is correct"], f"still TODO: {e}")
+        _skip(g, ["scoring behaves correctly"], f"still TODO: {e}")
     except Exception as e:
-        _skip(g, ["extract_final_answer is correct"], f"{type(e).__name__}: {e}")
+        _skip(g, ["scoring behaves correctly"], f"{type(e).__name__}: {e}")
 
+    # The written-for-you taskset must resolve through verifiers' OWN loader --
+    # the identical path the eval CLI takes. If this passes, the live command in
+    # the lab will find the module.
     try:
-        g.close(
-            "correct_answer rewards an exact match",
-            ex1.correct_answer(_msg("17*23=391.\nAnswer: 391"), "391"),
-            1.0,
-        )
-        g.close(
-            "correct_answer rejects a superset number (391 vs 3912)",
-            ex1.correct_answer(_msg("Answer: 3912"), "391"),
-            0.0,
-        )
-        g.close(
-            "correct_answer ignores the answer appearing only in prose",
-            ex1.correct_answer(_msg("The product is 391."), "391"),
-            0.0,
-        )
-    except NotImplementedYet as e:
-        _skip(g, ["correct_answer is correct"], f"still TODO: {e}")
-    except Exception as e:
-        _skip(g, ["correct_answer is correct"], f"{type(e).__name__}: {e}")
+        from verifiers.v1.utils.loaders import taskset_class
 
+        cls = taskset_class("exercise_1_first_task")
+        g.check("the lab file resolves as a taskset plugin",
+                cls is l1.MathTaskset,
+                f"taskset_class() found {cls!r}; expected MathTaskset via __all__")
+        ts = cls(vf.TasksetConfig())
+        tasks = list(ts)
+        g.check("the taskset yields 8 seeded tasks", len(tasks) == 8, f"got {len(tasks)}")
+        g.check("generated answers are correct",
+                all(str(eval(t.data.prompt.replace("What is ", "").rstrip("?")))  # noqa: S307
+                    == t.data.answer for t in tasks[:4]),
+                "the answer must match the question it was generated with")
+    except Exception as e:
+        _skip(g, ["the taskset resolves via the real loader"], f"{type(e).__name__}: {e}")
+
+
+def check_lab2(g: Grader) -> None:
+    print(f"\n{DIM}-- lab 2: weights --{RESET}")
     try:
-        env = ex1.build_env()
-        import verifiers as vf
-
-        g.check("build_env returns a SingleTurnEnv", isinstance(env, vf.SingleTurnEnv))
-        built = env.get_dataset()
-        g.check(
-            "the built dataset has a `prompt` column",
-            "prompt" in built.column_names,
-            f"got {built.column_names}",
-        )
-        first = built[0]["prompt"]
-        g.check(
-            "the system prompt is prepended to each prompt",
-            isinstance(first, list) and first[0]["role"] == "system",
-            f"expected the first message to be a system message, got {first[:1]}",
-        )
-    except NotImplementedYet as e:
-        _skip(g, ["build_env is correct"], f"still TODO: {e}")
+        import exercise_2_weights as l2
     except Exception as e:
-        _skip(g, ["build_env is correct"], f"{type(e).__name__}: {e}")
-
-
-def check_ex2(g: Grader) -> None:
-    print(f"\n{DIM}-- exercise 2: rubrics --{RESET}")
-    try:
-        import exercise_2_rubric as ex2
-    except Exception as e:
-        _skip(g, ["ex2 imports"], f"{type(e).__name__}: {e}")
+        _skip(g, ["lab 2 imports"], f"{type(e).__name__}: {e}")
         return
-    g.check("ex2 imports", True)
+    g.check("lab 2 imports", True)
 
     try:
-        g.close("format_reward accepts a well-formed reply", ex2.format_reward(_msg("Answer: 5")), 1.0)
-        g.close(
-            "format_reward accepts a WRONG but well-formed reply",
-            ex2.format_reward(_msg("Answer: 999")),
-            1.0,
-        )
-        g.close("format_reward rejects a reply with no answer line", ex2.format_reward(_msg("it's 5")), 0.0)
-        g.close(
-            "format_reward rejects an empty answer slot",
-            ex2.format_reward(_msg("Answer:   ")),
-            0.0,
-        )
+        task = l2.QuizTask(l2.QuizData(idx=0, prompt="q", answer="391"))
+        desc = l2.describe_rewards(task)
+        g.check("describe_rewards lists both components with their weights",
+                desc == [("correct_answer", 1.0), ("format_reward", 0.2)],
+                f"got {desc}")
     except NotImplementedYet as e:
-        _skip(g, ["format_reward is correct"], f"still TODO: {e}")
+        _skip(g, ["describe_rewards is correct"], f"still TODO: {e}")
     except Exception as e:
-        _skip(g, ["format_reward is correct"], f"{type(e).__name__}: {e}")
+        _skip(g, ["describe_rewards is correct"], f"{type(e).__name__}: {e}")
 
     try:
-        g.close("ex2 correct_answer: exact match", ex2.correct_answer(_msg("Answer: 391"), "391"), 1.0)
-        g.close("ex2 correct_answer: superset rejected", ex2.correct_answer(_msg("Answer: 3912"), "391"), 0.0)
-        g.close("ex2 correct_answer: no slot means 0", ex2.correct_answer(_msg("391"), "391"), 0.0)
+        rows = [
+            ("The answer is 391.", "391", 0.0, 0.0, "right but never committed"),
+            ("Answer: 400", "391", 0.0, 1.0, "wrong, well formatted"),
+            ("Answer: 391", "391", 1.0, 1.0, "right and formatted"),
+        ]
+        for reply, answer, want_c, want_f, label in rows:
+            t = l2.QuizTask(l2.QuizData(idx=0, prompt="q", answer=answer))
+            r = _score(t, l2.make_trace(t, reply))
+            g.check(f"components separate: {label}",
+                    r.get("correct_answer") == want_c and r.get("format_reward") == want_f,
+                    f"got {r}; expected correct={want_c}, format={want_f}")
     except NotImplementedYet as e:
-        _skip(g, ["ex2 correct_answer is correct"], f"still TODO: {e}")
+        _skip(g, ["the two components score correctly"], f"still TODO: {e}")
     except Exception as e:
-        _skip(g, ["ex2 correct_answer is correct"], f"{type(e).__name__}: {e}")
+        _skip(g, ["the two components score correctly"], f"{type(e).__name__}: {e}")
 
+
+def check_lab3(g: Grader) -> None:
+    print(f"\n{DIM}-- lab 3: reward hacking --{RESET}")
     try:
-        r = ex2.build_rubric()
-        names = [f.__name__ for f in r.funcs]
-        g.check(
-            "rubric contains both reward functions",
-            set(names) == {"correct_answer", "format_reward"},
-            f"got {names}",
-        )
-        g.check(
-            "correctness is weighted above format",
-            len(r.weights) == 2 and r.weights[names.index("correct_answer")]
-            > r.weights[names.index("format_reward")],
-            f"functions {names} with weights {r.weights}; correctness must outweigh format",
-        )
-    except NotImplementedYet as e:
-        _skip(g, ["build_rubric is correct"], f"still TODO: {e}")
+        import exercise_3_reward_hacking as l3
     except Exception as e:
-        _skip(g, ["build_rubric is correct"], f"{type(e).__name__}: {e}")
-
-
-def check_ex3(g: Grader) -> None:
-    print(f"\n{DIM}-- exercise 3: reward hacking lab --{RESET}")
-    try:
-        import exercise_3_reward_hacking as ex3
-    except Exception as e:
-        _skip(g, ["ex3 imports"], f"{type(e).__name__}: {e}")
+        _skip(g, ["lab 3 imports"], f"{type(e).__name__}: {e}")
         return
-    g.check("ex3 imports", True)
+    g.check("lab 3 imports", True)
 
-    # The sloppy one is provided, but confirm the premise still holds --
-    # if someone "fixes" it the lesson evaporates.
-    s_correct, _ = ex3.run_suite(ex3.sloppy_correctness)
-    g.check(
-        "sloppy_correctness is still broken (don't fix it -- it's the exhibit)",
-        s_correct < len(ex3.ATTACKS),
-        f"it scored {s_correct}/{len(ex3.ATTACKS)}; the whole point is that it fails",
-    )
+    s_correct, _ = l3.run_suite("sloppy_correctness")
+    g.check("sloppy_correctness is still broken (don't fix the exhibit)",
+            s_correct < len(l3.ATTACKS),
+            f"it scored {s_correct}/{len(l3.ATTACKS)}; the whole point is that it fails")
 
     try:
-        for name, reply, answer, expected in ex3.ATTACKS:
-            got = float(ex3.robust_correctness(_msg(reply), answer))
-            g.check(
-                f"robust_correctness survives: {name}",
-                abs(got - expected) < 1e-9,
-                f"reply {reply[:60]!r}... with answer {answer!r} "
-                f"should score {expected}, got {got}",
-            )
+        for name, reply, answer, expected in l3.ATTACKS:
+            task = l3.AttackTask(l3.AttackData(idx=0, prompt="q", answer=answer))
+            trace = l3.make_trace(task, reply)
+            got = float(asyncio.run(task.robust_correctness(task.data, trace)))
+            g.check(f"robust_correctness survives: {name}",
+                    abs(got - expected) < 1e-9,
+                    f"reply {reply[:50]!r}... with answer {answer!r} should score "
+                    f"{expected}, got {got}")
+
+        # once robust works, the full score() path must report both graders
+        task = l3.AttackTask(l3.AttackData(idx=0, prompt="q", answer="391"))
+        trace = l3.make_trace(task, "Answer: 3912")
+        r = _score(task, trace)
+        g.check("task.score() reports both graders side by side",
+                r == {"sloppy_correctness": 1.0, "robust_correctness": 0.0},
+                f"got {r} -- on 'Answer: 3912' the sloppy grader pays and yours "
+                f"must not; that daylight is the whole lab")
     except NotImplementedYet as e:
-        _skip(g, ["robust_correctness survives the attack suite"], f"still TODO: {e}")
+        _skip(g, ["robust_correctness survives the suite"], f"still TODO: {e}")
     except Exception as e:
-        _skip(g, ["robust_correctness survives the attack suite"], f"{type(e).__name__}: {e}")
+        _skip(g, ["robust_correctness survives the suite"], f"{type(e).__name__}: {e}")
 
 
 def main() -> None:
-    g = Grader("Module 02 — first environment")
-    check_ex1(g)
-    check_ex2(g)
-    check_ex3(g)
+    g = Grader("Unit 02 — your first task (v1)")
+    check_lab1(g)
+    check_lab2(g)
+    check_lab3(g)
     report(g)
 
 

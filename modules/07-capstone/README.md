@@ -40,7 +40,7 @@ be gamed, and you now have two problems.
 
 **You must be able to generate questions.** Twenty hand-written questions won't
 survive contact with Unit 04's sample-size arithmetic. You need a generator with
-a difficulty parameter, which is what Unit 06's infinite taskset was for.
+a difficulty parameter, which is what Unit 04's config knob was for.
 
 **The model must succeed sometimes.** This is the hard one. Unit 03 measured what
 happens at both extremes: a task the model always fails and a task it always
@@ -69,7 +69,8 @@ That search *is* the exercise. Budget real time for it.
 
 ## Stage 2 — Build it
 
-Write the environment. Either API is fine; say which and why.
+Write the taskset. Build on v1; reach for v0 only if you're extending an
+existing Hub environment, and say so in the write-up.
 
 Two things that must exist before you go near a GPU:
 
@@ -114,7 +115,8 @@ step is money spent teaching the model to exploit you.
 
 ## Stage 5 — Publish
 
-Package with `load_environment()` (Unit 04), push to the Hub.
+Package it the Unit 04 way — one `Taskset` through `__all__`, config as the
+public API — and push to the Hub.
 
 Your README must state: what the task is, how it's scored, what the difficulty
 range is, and what `pass@1`/`pass@k` a named model achieves. A published task

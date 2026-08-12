@@ -82,7 +82,7 @@ answer the problem set → compare against the solutions and argue with them.
 | **03** | Conversations and tools | 3–4 h | API key |
 | **04** | Packaging, publishing, and honest evaluation | 2–3 h | API key |
 | **05** | Training for real | 4–6 h | **GPU** |
-| **06** | The redesigned API | 2–3 h | API key |
+| **06** | The legacy API (v0) | 1–2 h | — |
 | **07** | Capstone project | 8–12 h | **GPU** |
 
 Units 00–04 and 06 run on a laptop and cost only API tokens. Units 05 and 07
@@ -129,6 +129,11 @@ actually read and what to skip. No reading is required to complete any unit.
 
 There's also an interactive web version of the lecture material, diagrams, and
 self-check questions: [`workbook.html`](workbook.html).
+
+**On the two APIs.** The course teaches `verifiers.v1` — the API the training
+stack's own configs are written in — from Unit 02 onward. The original API
+survives as Unit 06, because the Environments Hub still carries environments
+written against it and you will meet them.
 
 **On Unit 05.** Everything in this course was run on the machine that wrote it,
 with one exception: the GPU runbook in Unit 05 needs NVIDIA hardware that wasn't

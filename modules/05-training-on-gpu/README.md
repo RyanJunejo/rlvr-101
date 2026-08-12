@@ -126,10 +126,10 @@ it gets its own GPU.
 **`lr = 3e-6`** is small. RL post-training nudges an already-trained model; the
 large learning rates you'd use for pretraining would destroy it.
 
-**`taskset` / `harness` / `runtime`** is the Unit 06 vocabulary. The training
-config is written against the v1 API even though most published environments are
-still v0. `harness.id = "null"` means no agent loop — the model answers once,
-which is all this task needs.
+**`taskset` / `harness` / `runtime`** is the vocabulary you've used since Unit
+02. `harness.id = "null"` is the same flag from your first live eval: no agent
+loop, the model answers once. Training against the environment you packaged in
+Unit 04 is pointing `taskset.id` at it.
 
 **The model is 0.6B parameters.** Small enough that a full run finishes in
 minutes. That's the point: you want the loop to be boring before you scale it.
@@ -153,7 +153,7 @@ that tell you the rise is real:
 stranger is the Unit 02 failure mode arriving in production. Length is the
 cheapest early warning you have.
 
-**The individual reward components.** Unit 02's rubric reported each function
+**The individual reward components.** Unit 02's reward methods report
 separately for exactly this reason. Total reward up while correctness is flat
 means you're training a formatter.
 
@@ -217,8 +217,8 @@ uv run rl @ configs/basic/alphabet-sort/rl.toml
 
 ### 5.6 Your own environment
 
-Package the Unit 02 environment using the Unit 04 `load_environment()` pattern,
-push it to the Hub, and point a config's `taskset.id` at it.
+Push the taskset package you built in Unit 04 to the Hub, and point a config's
+`taskset.id` at it.
 
 **Run the Unit 04 feasibility check first.** Measure `pass@1` and `pass@8` at
 `group_size = 16`. If `pass@8` is near zero or `pass@1` is near one, fix the task

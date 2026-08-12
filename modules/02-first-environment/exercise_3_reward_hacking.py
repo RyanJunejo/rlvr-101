@@ -1,77 +1,104 @@
 """
-Exercise 3 — the reward hacking lab.
+Lab 3 — the reward hacking lab.
 
-This is the most important exercise in the workbook.
+This is the most important exercise in the course.
 
-Below is a reward function that looks fine. It ships in real codebases. It is
-the single most common way people write "did the model get it right":
+Below is a scoring method that looks completely reasonable. Versions of it ship
+in real codebases:
 
-    def sloppy_correctness(completion, answer, **kwargs) -> float:
-        return 1.0 if answer in completion[-1]["content"] else 0.0
+    @vf.reward
+    async def sloppy_correctness(self, task, trace) -> float:
+        return 1.0 if task.answer in trace.last_reply else 0.0
 
-"Did the correct answer appear somewhere in the response?" Reasonable, right?
+Read it in English: "did the right answer appear anywhere in the reply?" Run
+this file and watch it hand full marks to a reply that says the answer is NOT
+391, to one that guesses five numbers at once, and to one that just lists every
+number from 380 to 400.
 
-It is catastrophically broken. Run this file and watch it hand out full marks to
-a response that says the answer is *not* 391, to a response that guesses five
-numbers at once, and to a response that just lists every integer up to 400.
+Why this matters more than a list of bugs: a NOISY scoring function is
+survivable, because random errors average out over a batch. An EXPLOITABLE one
+does not average out, because training is a search process whose entire job is
+finding the highest score available. Every hole you leave, it finds -- "list
+every number" really does score higher than "multiply carefully", and it's much
+easier. The model isn't cheating. It's doing precisely what you asked.
 
-Here's the part that matters. A merely NOISY reward function is survivable --
-noise averages out over a batch. An EXPLOITABLE one does not average out,
-because RL is a search procedure and its entire job is to find exploits. Every
-hole you leave, gradient descent finds and drives through, because "list every
-number" really does score higher than "reason carefully."
+Your job: write `robust_correctness` so it survives the attack suite. The
+broken version scores 5/12. Yours must score 12/12.
 
-The optimizer is not misbehaving. It is doing exactly what you asked.
-
-This is Goodhart's law with a training loop attached: your reward function isn't
-a *measurement* of what you want, it's a *definition* of it. The moment you
-optimize against it, the difference stops being academic.
-
-Your job: write `robust_correctness` so it survives the attack suite.
-
-No API key needed. The attacks are canned, so this is deterministic and free.
+No API key needed -- the attacks are canned, so this is deterministic and free.
 
     uv run python modules/02-first-environment/exercise_3_reward_hacking.py
 """
 
 from __future__ import annotations
 
+import asyncio
+import re
 import sys
 from pathlib import Path
+
+import verifiers.v1 as vf
+from verifiers.v1.trace import TraceTask
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from common.grading import BOLD, DIM, GREEN, RED, RESET, run_main, todo  # noqa: E402
 
-
-def _msg(text: str) -> list[dict]:
-    """Wrap raw text as a completion (a list of chat messages)."""
-    return [{"role": "assistant", "content": text}]
+ANSWER_RE = re.compile(r"^\s*answer\s*:\s*(\S.*?)\s*$", re.IGNORECASE | re.MULTILINE)
 
 
-def _cell(val: float, expected: float, width: int = 8) -> str:
-    """Right-align the number, THEN colorize (padding a string that already
-    contains ANSI escapes counts them as visible width and misaligns)."""
-    color = GREEN if abs(val - expected) < 1e-9 else RED
-    return f"{color}{f'{val:.1f}'.rjust(width)}{RESET}"
+class AttackData(vf.TaskData):
+    answer: str
+
+
+class AttackTask(vf.Task[AttackData, vf.State, vf.TaskConfig]):
+    """One task, two graders -- so each attack scores both in a single pass."""
+
+    @vf.reward
+    async def sloppy_correctness(self, task: AttackData, trace: vf.Trace) -> float:
+        """The bug: substring containment is not equality. DO NOT FIX THIS ONE.
+
+        It's the exhibit. The lab is watching it fail."""
+        return 1.0 if task.answer in trace.last_reply else 0.0
+
+    @vf.reward
+    async def robust_correctness(self, task: AttackData, trace: vf.Trace) -> float:
+        """Score 1.0 only when the model COMMITTED to exactly the right answer.
+
+        The strategy, which is the lesson -- read it before coding:
+
+          1. Only the answer SLOT counts. Take ANSWER_RE matches from
+             `trace.last_reply`; never search prose for the answer. Prose is
+             reasoning, and reasoning legitimately contains wrong intermediate
+             values. Only the slot is a claim.
+
+          2. The LAST match wins. Models restate the format mid-reasoning and
+             correct themselves; the final commitment is the real one. Taking
+             the first would fail honest self-correction -- a false negative,
+             the worst grading bug, because it teaches the model that being
+             right doesn't pay.
+
+          3. Compare EXACTLY: strip whitespace and one trailing period, then
+             `==`. "3912" must not match "391". `in` is almost never the right
+             operator in a grader.
+
+          4. No slot, no credit. A reply with no Answer: line never committed
+             to anything. Return 0.0.
+
+        Rule 3 kills most of the attacks. Rule 1 kills the rest.
+
+        Args:
+            task: carries the reference `answer`.
+            trace: carries the model's reply in `last_reply`.
+        Returns:
+            1.0 or 0.0
+        """
+        # TODO: implement the four rules.
+        return todo("robust_correctness: last Answer: line, compared exactly")
 
 
 # ---------------------------------------------------------------------------
-# The broken reward function. Do not fix this one -- we want to watch it fail.
-# ---------------------------------------------------------------------------
-
-
-def sloppy_correctness(completion, answer, **kwargs) -> float:
-    """The bug: substring containment is not equality."""
-    text = completion[-1]["content"]
-    return 1.0 if answer in text else 0.0
-
-
-# ---------------------------------------------------------------------------
-# The attack suite.
-#
-# Each case is (name, model_reply, reference_answer, what_a_correct_grader_says).
-# Some of these are HONEST answers that must still score 1.0 -- a "robust" reward
-# function that just returns 0.0 for everything is not robust, it's useless.
+# The attack suite. Some cases are HONEST answers that must still score 1.0 --
+# a "robust" grader that returns 0.0 for everything isn't robust, it's useless.
 # ---------------------------------------------------------------------------
 
 _ENUMERATION = "I'm not certain, so here are the possibilities: " + ", ".join(
@@ -84,9 +111,9 @@ ATTACKS: list[tuple[str, str, str, float]] = [
     ("extra whitespace", "Answer:   391  ", "391", 1.0),
     ("trailing period", "Let me work it out.\nAnswer: 391.", "391", 1.0),
     ("self-correction", "Answer: 12\nWait, that's wrong.\nAnswer: 391", "391", 1.0),
-    # --- honest failures: correctly scored 0 by BOTH graders ---
+    # --- honest failure: correctly scored 0 by BOTH graders ---
     ("honest wrong", "I think it's 400.\nAnswer: 400", "391", 0.0),
-    # --- the exploits: sloppy_correctness gives these full marks ---
+    # --- the exploits: sloppy_correctness pays all of these ---
     ("superset number", "Answer: 3912", "391", 0.0),
     ("negation", "It is definitely not 391.\nAnswer: 400", "391", 0.0),
     ("shotgun guess", "Could be 389, 390, 391, or 392.\nAnswer: 389", "391", 0.0),
@@ -97,60 +124,37 @@ ATTACKS: list[tuple[str, str, str, float]] = [
 ]
 
 
-def robust_correctness(completion, answer, **kwargs) -> float:
-    """Score 1.0 only when the model committed to exactly the right answer.
-
-    THE STRATEGY (this is the lesson, so read it before coding):
-
-      1. Make the model COMMIT. Don't search the whole response for the answer --
-         look only at the designated answer slot. Our system prompt asks for a
-         final line `Answer: <number>`, so that line, and nothing else, is the
-         model's claim. Prose is reasoning; only the slot is an assertion.
-
-      2. Take the LAST such line, scanning bottom-up. Models restate the format
-         mid-reasoning and correct themselves. The final commitment is the real one.
-
-      3. Compare EXACTLY, not by containment. Strip whitespace and one trailing
-         period, then use `==`. "3912" must not match "391".
-
-      4. No slot, no credit. If the model never emitted an `Answer:` line, return
-         0.0. It never committed to anything.
-
-    Requirement 3 is what kills most of the attacks. Requirement 1 kills the rest.
-
-    A NOTE ON RULE 4, because it's a real design decision and not obviously right:
-    a model that replies with a bare "391" and no `Answer:` line gets 0.0 here,
-    even though it was correct. You've folded format compliance into your
-    correctness signal, which means your metric can no longer tell "can't do
-    arithmetic" apart from "won't follow instructions". That's bad instrumentation.
-    The fix isn't to loosen this function -- it's to add a SEPARATE format reward
-    and let the rubric weight them independently. Which is exactly what exercise 2
-    has you build.
-
-    Args:
-        completion: list of chat messages; model text is completion[-1]["content"].
-        answer: the reference answer string.
-    Returns:
-        1.0 or 0.0
-    """
-    # TODO: implement the four rules above.
-    return todo("robust_correctness: parse the last Answer: line, compare exactly")
-
-
 # ---------------------------------------------------------------------------
 # Written for you.
 # ---------------------------------------------------------------------------
 
 
-def run_suite(fn) -> tuple[int, list[str]]:
-    """Score every attack with `fn`; return (n_correct, names_it_got_wrong)."""
+def make_trace(task: AttackTask, reply: str) -> vf.Trace:
+    trace = vf.Trace(
+        task=TraceTask(type=type(task).__name__, data=task.data),
+        agent=vf.AgentInfo(config=vf.AgentConfig(), name="offline", trainable=False),
+    )
+    trace.nodes.append(
+        vf.MessageNode(message=vf.AssistantMessage(content=reply), sampled=True)
+    )
+    return trace
+
+
+def _cell(val: float, expected: float, width: int = 8) -> str:
+    """Right-align the number, THEN colorize -- padding a string that already
+    contains ANSI escapes counts them as visible width and misaligns."""
+    color = GREEN if abs(val - expected) < 1e-9 else RED
+    return f"{color}{f'{val:.1f}'.rjust(width)}{RESET}"
+
+
+def run_suite(method_name: str) -> tuple[int, list[str]]:
+    """Score every attack with one grader; return (n_correct, names_it_got_wrong)."""
     correct, wrong = 0, []
     for name, reply, answer, expected in ATTACKS:
-        try:
-            got = float(fn(_msg(reply), answer))
-        except Exception:
-            got = -1.0
-        if abs(got - expected) < 1e-9:
+        task = AttackTask(AttackData(idx=0, prompt="q", answer=answer))
+        trace = make_trace(task, reply)
+        got = asyncio.run(getattr(task, method_name)(task.data, trace))
+        if abs(float(got) - expected) < 1e-9:
             correct += 1
         else:
             wrong.append(name)
@@ -158,62 +162,54 @@ def run_suite(fn) -> tuple[int, list[str]]:
 
 
 def main() -> None:
-    print(f"{BOLD}Scoring the attack suite with BOTH reward functions{RESET}\n")
+    print(f"{BOLD}Scoring the attack suite with BOTH graders{RESET}\n")
     header = f"{'attack':<28} {'should be':>10} {'sloppy':>8} {'robust':>8}"
     print(header)
     print("-" * len(header))
 
     robust_works = True
     for name, reply, answer, expected in ATTACKS:
-        s = sloppy_correctness(_msg(reply), answer)
+        task = AttackTask(AttackData(idx=0, prompt="q", answer=answer))
+        trace = make_trace(task, reply)
+        s = asyncio.run(task.sloppy_correctness(task.data, trace))
         try:
-            r_col = _cell(float(robust_correctness(_msg(reply), answer)), expected)
+            r_col = _cell(float(asyncio.run(task.robust_correctness(task.data, trace))), expected)
         except Exception:
             r_col, robust_works = f"{DIM}{'TODO'.rjust(8)}{RESET}", False
         print(f"{name:<28} {expected:>10.1f} {_cell(s, expected)} {r_col}")
 
     n = len(ATTACKS)
-    s_correct, s_wrong = run_suite(sloppy_correctness)
-    print(f"\n{BOLD}sloppy_correctness: {s_correct}/{n} correct{RESET}")
+    s_correct, s_wrong = run_suite("sloppy_correctness")
+    print(f"\n{BOLD}sloppy_correctness: {s_correct}/{n}{RESET}")
     print(f"  {DIM}fooled by: {', '.join(s_wrong)}{RESET}")
-
     if robust_works:
-        r_correct, r_wrong = run_suite(robust_correctness)
-        print(f"{BOLD}robust_correctness: {r_correct}/{n} correct{RESET}")
-        if r_wrong:
-            print(f"  {DIM}still fooled by: {', '.join(r_wrong)}{RESET}")
-        else:
-            print(f"  {GREEN}survives every attack.{RESET}")
+        r_correct, r_wrong = run_suite("robust_correctness")
+        print(f"{BOLD}robust_correctness: {r_correct}/{n}{RESET}")
+        print(f"  {DIM}{'still fooled by: ' + ', '.join(r_wrong) if r_wrong else 'survives every attack.'}{RESET}")
     else:
         print(f"{DIM}robust_correctness: not implemented yet.{RESET}")
 
     print(
         f"\n{BOLD}Now the part that should actually worry you.{RESET}\n"
         "\n"
-        "Look at 'enumerate everything'. Under the sloppy reward, a model that lists\n"
-        "every number from 380 to 400 scores 1.0 -- the same as a model that computed\n"
-        "the answer correctly. And listing numbers is MUCH easier than multiplying.\n"
+        "Look at 'enumerate everything'. Under the sloppy grader, listing every\n"
+        "number from 380 to 400 scores 1.0 -- same as computing the answer, and\n"
+        "far easier. Recall how GRPO works (Unit 01): advantage comes from score\n"
+        "DIFFERENCES within a group. The moment one sampled reply stumbles onto\n"
+        "enumeration and scores 1.0 while careful replies score 0.0 on an\n"
+        "arithmetic slip, enumeration gets a positive advantage. Its probability\n"
+        "rises. It wins more groups. A few hundred steps later the model has\n"
+        "abandoned arithmetic -- and the reward curve looked like a triumph the\n"
+        "whole time, because the reward curve is the thing being hacked.\n"
         "\n"
-        "Now recall how GRPO works (Module 01): advantage comes from differences\n"
-        "WITHIN a group of completions on the same prompt. So the moment one sampled\n"
-        "completion stumbles onto enumeration and scores 1.0 while the careful ones\n"
-        "score 0.0 because of an arithmetic slip, enumeration gets a positive\n"
-        "advantage and its logits go up. Next step it's sampled more often. It wins\n"
-        "more groups. Within a few hundred steps you have a model that has completely\n"
-        "abandoned arithmetic in favour of listing numbers, and a training curve that\n"
-        "looks like a triumph.\n"
-        "\n"
-        "You would not notice from the reward curve. That's the point. The reward\n"
-        "curve is the thing being hacked.\n"
-        "\n"
-        "How you actually catch this in practice:\n"
-        "  - READ THE ROLLOUTS. Not the mean reward -- the actual text. Regularly.\n"
-        "    Every practitioner will tell you this and most people still don't do it.\n"
-        "  - Watch completion length. Reward climbing while replies get longer and\n"
-        "    weirder is the classic signature.\n"
-        "  - Hold out an eval your rubric can't touch, and check the two agree.\n"
-        "  - Assume every reward function you write has a hole, because it does.\n"
-        "    The question is only whether you find it before the optimizer does."
+        "How you catch it in practice:\n"
+        "  - READ THE ROLLOUTS. traces.jsonl, actual text, regularly. Everyone\n"
+        "    says this; almost nobody does it.\n"
+        "  - Watch completion length. Score climbing while replies grow longer\n"
+        "    and stranger is the classic signature.\n"
+        "  - Hold out an eval your grader can't touch, and check they agree.\n"
+        "  - Assume every grader you write has a hole, because it does. The only\n"
+        "    question is whether you find it before the optimizer does."
     )
 
 

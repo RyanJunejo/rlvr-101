@@ -2,19 +2,20 @@
 
 ### Lecture notes
 
-> **Time:** 3–4 hours · **Prerequisites:** Units 01 and 02 · **Needs:** an API
-> key (lab 3 only; labs 1–2 run offline)
+> **Time:** 3–4 hours · **Prerequisites:** Units 01 and 02 · **Needs:** nothing
+> for the labs; an API key for the live runs
 >
 > **By the end of this unit you will be able to:**
-> 1. Build a multi-turn environment where the model's action changes what it
->    sees next.
-> 2. Explain what `setup_state`, `env_response` and `@vf.stop` each do, and when
->    each one runs.
+> 1. Build a multi-turn environment: an `Env` whose `run()` plays the
+>    environment's side of a conversation.
+> 2. Write scoring that replays the transcript instead of trusting stored
+>    state, and say why that discipline matters.
 > 3. Diagnose the **sparse reward problem** — and connect it directly to the
 >    zero-advantage result from Unit 01.
 > 4. Design a shaped reward that rescues learning, and identify the new way it
 >    can be gamed.
-> 5. Give a model tools, and reason about what tool use does to your scoring.
+> 5. Expose tools through a `Toolset`, and reason about what tool use does to
+>    your scoring.
 >
 > **Deliverables:** 3 labs, autograder green, problem set in `NOTES.md`.
 
@@ -44,91 +45,68 @@ harder for two reasons:
 The good news is you don't need new machinery. The training algorithm from Unit
 01 doesn't change at all. What changes is your environment, and your scoring.
 
-## 2. The three methods you implement
+## 2. The Env: playing the other side
 
-A multi-turn environment is a subclass of `vf.MultiTurnEnv` with three pieces.
-What each one is for, and when it runs:
-
-```
-   rollout starts
-        │
-        ├─ setup_state(state)        ← ONCE, before anything.
-        │                              Put your game's starting position here.
-        │
-        ├─ model produces a message
-        ├─ @vf.stop checks           ← after each turn: are we done?
-        ├─ env_response(msgs, state) ← your reply back to the model
-        ├─ model produces a message
-        ├─ @vf.stop checks
-        │   ... repeat ...
-        │
-   rollout ends → rubric scores it
-```
-
-**`setup_state(state)`** runs once at the start. `state` is a dict that persists
-for the whole rollout, and it already contains `answer` (from your dataset). Add
-whatever your game needs and return it:
+In v1, the conversation is driven by an `Env`. Its `run()` method is plain
+imperative code — take the model's move, reply, repeat:
 
 ```python
-async def setup_state(self, state):
-    state["secret"] = int(state["answer"])
-    state["guesses"] = []
-    return state
+class GuessEnv(vf.Env[GuessEnvConfig]):
+    async def run(self, task, agents) -> None:
+        secret = int(task.data.answer)
+        async with agents.player.interaction(task) as interaction:
+            segment = await interaction.turn()        # the model's opening move
+            for _ in range(MAX_TURNS - 1):
+                guess = parse_guess(segment.last_reply)
+                if guess == secret:
+                    return                            # game over
+                segment = await interaction.turn(respond(guess, secret))
 ```
 
-**`env_response(messages, state)`** is the environment talking back. `messages`
-ends with what the model just said; you return a list of new messages:
+Two conventions to notice:
+
+- **A prompted task speaks first.** The task's `prompt` opens the exchange, so
+  the first call is a *bare* `turn()` that collects the model's opening reply.
+  Every later `turn(feedback)` sends your message and returns the model's next
+  one.
+- **Ending the exchange is just returning.** No terminal-state machinery — when
+  `run()` returns, the rollout is over and scoring begins.
+
+An `Env` needs a live model on the other end, so it can't run offline. That's
+fine, because of the next idea.
+
+## 3. Score the transcript, not your memory of the game
+
+The lab's reward doesn't ask the Env whether the model won. It **replays the
+transcript**: parse every guess out of `trace.assistant_messages`, compare
+against `task.answer`, done.
 
 ```python
-async def env_response(self, messages, state, **kwargs):
-    text = messages[-1]["content"]
-    ...
-    return [vf.UserMessage(content="Too high.")]
+@vf.reward
+async def solved(self, task, trace) -> float:
+    secret = int(task.answer)
+    guesses = (parse_guess(m.content or "") for m in trace.assistant_messages)
+    return 1.0 if any(g == secret for g in guesses) else 0.0
 ```
 
-Note it returns a **list**, and note the messages are `vf.UserMessage` — from the
-model's point of view, the environment is the user.
+This is a discipline worth adopting generally. The grader depends only on the
+model's own messages plus the ground truth — so it cannot drift out of sync
+with the gameplay. If the Env had a feedback bug, this reward would still score
+the truth. When scoring and gameplay *can* disagree, one of them is a bug you
+won't notice, because nothing ever compares them.
 
-**`@vf.stop`** marks a method that decides whether the rollout is over:
+It's also what makes the labs testable offline: a hand-built trace with
+alternating guess/feedback messages scores identically to a real game.
 
-```python
-@vf.stop
-async def solved(self, state) -> bool:
-    return state.get("solved", False)
-```
-
-You get `max_turns` for free from the constructor — `MultiTurnEnv` already has a
-built-in stop condition for it. You only write `@vf.stop` methods for *your*
-game's ending conditions.
-
-> **A note on the docs.** Older `verifiers` documentation describes an
-> `is_completed()` method. That's not how version 0.3.0 works — it uses these
-> `@vf.stop` decorated methods instead. When library docs and library source
-> disagree, the source wins. This is worth internalizing generally.
-
-## 3. Mutating state is the whole point
-
-In Unit 02 your reward functions were pure: look at the text, return a number.
-Here, `env_response` **writes to `state`**, and the rubric reads it afterward.
-
-```python
-state["guesses"].append(g)
-if g == state["secret"]:
-    state["solved"] = True
-```
-
-That's how the score at the end knows what happened during the game. Your reward
-functions can now ask for `state` and inspect the whole history:
-
-```python
-def solved_reward(state, **kwargs) -> float:
-    return 1.0 if state.get("solved") else 0.0
-```
+The library has a place for state a rollout does need —
+`self.state` on an `Env` or `Toolset` — and one rule about it: mutable rollout
+data goes on `self.state`, never on `self`. Instances are shared across
+concurrent rollouts; state on `self` is how two games corrupt each other.
 
 ## 4. The sparse reward problem
 
-This section matters more than the rest of the unit, and it follows directly from
-something you already proved in Unit 01.
+Everything in this section follows from a result you already proved in Unit
+01, and it decides whether multi-turn training works at all.
 
 Suppose your only score is "did the model win the game." Now imagine a model
 that's currently bad at the game — it wins maybe 1 time in 50.
@@ -141,7 +119,7 @@ mean = 0.0
 advantages:           0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
 ```
 
-**Every advantage is zero. That group teaches the model nothing.**
+Every advantage is zero. That group teaches the model nothing.
 
 You proved this in Unit 01: advantage is score-minus-group-average, so a group
 where every score is identical produces no gradient at all. It doesn't matter
@@ -149,17 +127,14 @@ that the scores are 0.0 rather than 1.0 — what matters is that they're *the
 same*.
 
 So with a sparse reward and a weak model, almost every group is wasted. You burn
-enormous amounts of generation compute to produce exactly zero learning signal.
-And the model can never bootstrap, because it needs to already be decent at the
-task to get any signal at all.
-
-This is *the* central difficulty of multi-turn RL, and it has a name in the
-literature: the exploration problem.
+generation compute to produce zero learning signal, and the model can never
+bootstrap, because it needs to already be decent at the task to get any signal
+at all.
 
 ### The fix, and its price
 
-Give partial credit. Don't just reward winning — reward *progress toward*
-winning. In the guessing game, reward narrowing the range:
+Give partial credit: reward *progress toward* winning, with the win itself
+still worth the most. In the guessing game, score the closest approach:
 
 ```
 group of 8 rollouts:  0.1  0.4  0.0  0.3  0.6  0.2  0.1  0.5
@@ -170,62 +145,57 @@ advantages:          -0.2 +0.5 -1.0 +0.1 +1.3 -0.3 -0.2 +0.9
 Now there's spread, so there's signal, so the model can climb. This is called
 **reward shaping**.
 
-**But you have just re-opened the door from Unit 02.** A shaped reward is a
-second scoring function, which means it's a second thing that can be gamed. A
-model can learn to farm partial credit indefinitely without ever finishing — if
-"narrowing the range" pays, and finishing doesn't pay much more, then narrowing
-the range very slowly forever is a perfectly good strategy.
+But you have just re-opened the door from Unit 02. A shaped reward is a second
+scoring function, which means a second thing that can be gamed. If "getting
+close" pays, and finishing doesn't pay much more, then hovering close forever is
+a perfectly good strategy.
 
-The rule that follows, and it's the same rule as Unit 02 in a new costume:
+The rule that follows — the same rule as Unit 02 in a new costume:
 
 > Shaped rewards must always be worth **strictly less** than actually winning.
 > Partial credit is a ladder to the goal, never a destination.
 
-Lab 2 has you measure the sparse-reward failure and then build the shaped
-version.
+Lab 2 has you measure the sparse-reward failure across skill levels, then build
+the shaped version. It's pure numpy — the problem is about scores and groups,
+not about any particular API.
 
 ## 5. Giving the model tools
 
-A tool is just a Python function. `ToolEnv` handles everything else:
+Tools live on a `Toolset`. Each `@vf.tool` method becomes a tool the model can
+call:
 
 ```python
-def calculator(expression: str) -> str:
-    """Evaluate a arithmetic expression. Example: calculator("17 * 23")"""
-    ...
-
-env = vf.ToolEnv(tools=[calculator], max_turns=6, dataset=ds, rubric=rubric)
+class CalcToolset(vf.Toolset[vf.ToolsetConfig, vf.State]):
+    @vf.tool
+    def calculator(self, expression: str) -> str:
+        """Evaluate an arithmetic expression. Example: calculator("17 * 23") -> "391"."""
+        ...
 ```
 
-The library reads your function's **name, signature, and docstring** to tell the
-model what the tool does. Your docstring goes into the prompt verbatim. A vague
-docstring produces a model that misuses the tool.
-
-`ToolEnv` also adds monitoring metrics for free: `total_tool_calls`, and a
-per-tool count. These aren't rewards (they're weighted 0), they're diagnostics —
-and they're how you notice a model that has learned to call a tool 40 times per
-question because something in your scoring rewards it.
+The library builds the tool's schema from the method's **signature** and its
+description from the **docstring**. The docstring is prompt, not
+documentation: a vague one produces a model that misuses the tool.
 
 Two things to think about, which lab 3 covers:
 
-- **Tool errors are training data.** If your tool raises on bad input, the model
-  sees the error message and can correct. So the error text matters — it's a
-  teaching signal, and `"ValueError"` teaches less than `"expression must
-  contain only digits and + - * / ( )"`.
-- **A tool that does the whole task is not a tool, it's an answer key.** If you
-  give a calculator to a model on an arithmetic task, you're no longer training
-  arithmetic — you're training tool-calling. That might be what you want. Be
-  sure it is.
+- **Tool errors are training data.** Whatever your tool returns becomes the
+  model's next turn. Return an actionable error string ("only numbers and
+  + - * / ** are allowed") rather than raising — a good message is a chance to
+  self-correct, a stack trace is a dead rollout.
+- **A tool that does the whole task is not a tool, it's an answer key.** A
+  calculator on an arithmetic task means you're training tool use, not
+  arithmetic. That might be what you want. Be sure it is.
 
 ## Labs
 
 | file | what you build |
 |---|---|
-| `exercise_1_guessing_game.py` | a complete multi-turn environment, offline |
-| `exercise_2_sparse_rewards.py` | measure the sparse-reward failure, then fix it |
-| `exercise_3_tools.py` | give a model a calculator and a lookup tool |
+| `exercise_1_guessing_game.py` | game logic + transcript-replaying rewards; the Env is written for you |
+| `exercise_2_sparse_rewards.py` | measure the sparse-reward failure, then fix it (pure numpy) |
+| `exercise_3_tools.py` | a `Toolset` with a calculator, and what the model actually sees |
 
-Labs 1 and 2 run entirely offline and deterministically. Lab 3 needs an API key
-for the optional live section.
+All three run offline and deterministic. Labs 1 and 3 print the eval-CLI
+command for their live versions.
 
 ## How to work
 
@@ -241,7 +211,9 @@ Worked numbers are in [`WORKED_EXAMPLES.md`](WORKED_EXAMPLES.md).
 You should be able to say:
 
 > Multi-turn is the same training algorithm with a harder scoring problem. The
-> danger is that a sparse "did you win" reward gives every rollout the same score
-> when the model is weak, and identical scores mean zero advantage and zero
+> danger is that a sparse "did you win" reward gives every rollout the same
+> score when the model is weak — identical scores mean zero advantage and zero
 > learning. Partial credit fixes that, at the cost of introducing something new
-> to game — so partial credit must always be worth less than winning.
+> to game, so partial credit must always be worth less than winning. And my
+> graders replay the transcript, because a grader that trusts the game's own
+> bookkeeping can silently disagree with what happened.

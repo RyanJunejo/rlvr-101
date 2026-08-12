@@ -7,82 +7,83 @@ Scoring guide: **90+** you could teach this unit. **70–89** solid, move on.
 
 ---
 
-## Part A — The environment object (25 pts)
+## Part A — The task object (30 pts)
 
-**A1. (10 pts)** What are the three parts of a `verifiers` environment, and what
-does each one own?
-
-> 
-
-**A2. (10 pts)** The same environment object works as a test, as a way to
-generate training data, and as a training task, with no changes. Why is that
-possible? What does it tell you about the relationship between evaluating a model
-and training one?
+**A1. (10 pts)** Name the three pieces of a v1 scoring setup and what each one
+owns. Which of the three do *you* write the most of?
 
 > 
 
-**A3. (5 pts)** `completion` isn't a string. What is it, and how do you get the
-model's text out of it?
+**A2. (5 pts)** `TaskData` is frozen. Why does that matter after a run, when
+you're reading `traces.jsonl`?
 
 > 
 
----
-
-## Part B — Rubrics and weights (20 pts)
-
-**B1. (10 pts)** You write `def my_reward(completion, answer, **kwargs)`. How
-does the library know what to pass in? Why should you always include `**kwargs`?
+**A3. (10 pts)** You build a trace by hand, score it, and every reward comes
+back 0.0 with no error raised. What did you forget, and why does the library
+treat that as correct behavior rather than a bug?
 
 > 
 
-**B2. (10 pts)** Multiplying every weight in your rubric by 10 changes nothing
-about training. Explain why (think about what GRPO does with the numbers), and
-then say what *does* change training when you edit a rubric.
+**A4. (5 pts)** What error message tells you a reward method isn't `async`, and
+why is it unhelpful?
 
 > 
 
 ---
 
-## Part C — The reward-hacking lab (40 pts)
+## Part B — Rewards and weights (25 pts)
 
-**C1. (15 pts)** Pick three attacks from the suite. For each, state in one line
-why `sloppy_correctness` fell for it, and which rule in your fixed version stops
-it.
+**B1. (10 pts)** How does a reward method get its arguments? Why is a method
+that asks only for `trace` making a useful statement about itself?
 
 > 
 
-**C2. (15 pts)** The central argument of this unit: why is an *exploitable*
+**B2. (10 pts)** Multiplying every weight by 10 changes nothing about training.
+Explain why (think about what GRPO does with the numbers), and then say what
+*does* change training when you edit weights.
+
+> 
+
+**B3. (5 pts)** In the legacy API, weights lived in a list parallel to a list of
+functions. What bug does putting the weight on the decorator retire?
+
+> 
+
+---
+
+## Part C — The reward-hacking lab (35 pts)
+
+**C1. (15 pts)** Pick three attacks from the suite. For each, say in one line why
+`sloppy_correctness` fell for it, and which of your four rules stops it.
+
+> 
+
+**C2. (10 pts)** The central argument of this unit: why is an *exploitable*
 scoring function categorically worse than a merely *noisy* one? Your answer must
 say something about what training is doing as a process.
 
 > 
 
-**C3. (10 pts)** Trace the failure end to end. One answer in a group stumbles
-onto "list every number from 380 to 400" and scores 1.0 while the careful answers
-score 0.0 on an arithmetic slip. Walk through what happens over the next few
-hundred training steps, and describe what the score curve looks like while it
-happens.
+**C3. (10 pts)** Trace the failure end to end. One reply in a group stumbles
+onto "list every number from 380 to 400" and scores 1.0 while careful replies
+score 0.0 on an arithmetic slip. Walk through the next few hundred training
+steps, and describe what the score curve looks like while it happens.
 
 > 
 
 ---
 
-## Part D — Design judgment (15 pts)
+## Part D — Judgment (10 pts)
 
-**D1. (5 pts)** Why is a *formatting* reward specifically dangerous to weight
-heavily? Name the two properties that make any scoring component a magnet for the
-model's attention.
-
-> 
-
-**D2. (5 pts)** Your fixed function passes all 12 attacks. Is it safe? Name at
-least two ways it could still be fooled, and say what you'd have to give up to
-close each one.
+**D1. (5 pts)** In the real eval run, some rollouts scored 0.0 because of a 401
+error, not a wrong answer. What two trace fields distinguish those cases, and
+why will this matter in Unit 05?
 
 > 
 
-**D3. (5 pts)** You're writing a scoring function for a brand-new task tomorrow.
-Write your checklist.
+**D2. (5 pts)** Your fixed grader passes 12/12. Name two ways it can still be
+fooled, and what closing each hole would cost.
 
 > 
 

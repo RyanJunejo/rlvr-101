@@ -9,23 +9,21 @@ Scoring guide: **90+** you could teach this unit. **70–89** solid, move on.
 
 ## Part A — Multi-turn mechanics (25 pts)
 
-**A1. (10 pts)** Name the three methods you implemented, and say when each one
-runs during a rollout.
+**A1. (10 pts)** Describe the shape of an `Env.run()`: what does a bare
+`turn()` do, what does `turn(feedback)` do, and how does the rollout end?
 
 > 
 
-**A2. (10 pts)** In Unit 02 your reward functions only looked at the text. Here
-`env_response` writes into `state` and the rubric reads it afterwards. Why is
-that necessary? What would you have to do instead if you didn't record anything?
+**A2. (10 pts)** The `solved` reward replays the transcript instead of reading
+any stored game state. What failure does that discipline make impossible, and
+what makes it testable offline?
 
 > 
 
-**A3. (5 pts)** Why is it a bug to store the secret number on `self` (the
-environment object) rather than in `state`? What would go wrong, and when?
+**A3. (5 pts)** Why is it a bug to keep mutable rollout data on `self` rather
+than `self.state`? What would go wrong, and when?
 
 > 
-
----
 
 ## Part B — The design decisions (20 pts)
 

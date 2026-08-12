@@ -9,6 +9,7 @@ Runs entirely offline. No API key needed.
 from __future__ import annotations
 
 import asyncio
+import inspect
 import sys
 from pathlib import Path
 
@@ -26,106 +27,91 @@ def _skip(g: Grader, names: list[str], why: str) -> None:
         g.check(n, False, why)
 
 
-def _run(coro):
-    return asyncio.run(coro)
-
-
 def check_lab1(g: Grader) -> None:
     print(f"\n{DIM}-- lab 1: the guessing game --{RESET}")
     try:
+        import verifiers.v1 as vf
+
         import exercise_1_guessing_game as l1
-        import verifiers as vf
     except Exception as e:
         _skip(g, ["lab 1 imports"], f"{type(e).__name__}: {e}")
         return
     g.check("lab 1 imports", True)
 
-    def fresh(secret=42):
-        env = l1.build_env()
-        st = vf.State({"answer": str(secret), "prompt": [], "trajectory": []})
-        return env, _run(env.setup_state(st))
-
     try:
-        env, st = fresh(42)
-        g.check("setup_state stores the secret as an int", st.get("secret") == 42,
-                f"expected state['secret'] == 42 (int), got {st.get('secret')!r}")
-        g.check("setup_state starts an empty guess list", st.get("guesses") == [],
-                f"expected [], got {st.get('guesses')!r}")
-        g.check("setup_state starts unsolved", st.get("solved") is False,
-                f"expected False, got {st.get('solved')!r}")
+        g.check("parse_guess reads a plain guess", l1.parse_guess("Guess: 50") == 50,
+                f"got {l1.parse_guess('Guess: 50')!r}")
+        g.check("parse_guess takes the LAST guess in a message",
+                l1.parse_guess("Guess: 5\nActually wait.\nGuess: 42") == 42,
+                f"got {l1.parse_guess('Guess: 5' + chr(10) + 'Guess: 42')!r}; models "
+                f"correct themselves, and the final commitment is the real one")
+        g.check("parse_guess returns None when there's no guess",
+                l1.parse_guess("I give up") is None,
+                f"got {l1.parse_guess('I give up')!r}; None, not 0 -- the caller must "
+                f"tell 'no guess' apart from a real number")
     except NotImplementedYet as e:
-        _skip(g, ["setup_state is correct"], f"still TODO: {e}")
+        _skip(g, ["parse_guess is correct"], f"still TODO: {e}")
         return
     except Exception as e:
-        _skip(g, ["setup_state is correct"], f"{type(e).__name__}: {e}")
+        _skip(g, ["parse_guess is correct"], f"{type(e).__name__}: {e}")
         return
 
     try:
-        env, st = fresh(42)
-
-        def say(text):
-            return _run(env.env_response([vf.AssistantMessage(content=text)], st))[-1]["content"]
-
-        low = say("Guess: 10")
-        g.check("a guess below the secret gets 'too low'", "low" in low.lower(),
-                f"guessed 10 with secret 42, env replied {low!r}")
-        high = say("Guess: 90")
-        g.check("a guess above the secret gets 'too high'", "high" in high.lower(),
-                f"guessed 90 with secret 42, env replied {high!r}")
-        g.check("guesses are recorded in state", st["guesses"] == [10, 90],
-                f"after guessing 10 then 90, state['guesses'] is {st['guesses']!r}")
-
-        correct = say("Let me think.\nGuess: 42")
-        g.check("the correct guess is recognised", "correct" in correct.lower(),
-                f"guessed the secret, env replied {correct!r}")
-        g.check("solving sets state['solved']", st.get("solved") is True,
-                f"expected True after a correct guess, got {st.get('solved')!r}")
-
-        env2, st2 = fresh(42)
-        before = list(st2["guesses"])
-        reply = _run(env2.env_response([vf.AssistantMessage(content="I have no idea")], st2))
-        g.check("a message with no guess doesn't crash", isinstance(reply, list) and len(reply) > 0,
-                f"expected a list of messages, got {reply!r}")
-        g.check("a message with no guess records nothing", st2["guesses"] == before,
-                f"guesses changed from {before!r} to {st2['guesses']!r}")
-
-        env3, st3 = fresh(42)
-        _run(env3.env_response([vf.AssistantMessage(content="Guess: 5\nActually wait.\nGuess: 42")], st3))
-        g.check("the LAST guess in a message is the one that counts", st3.get("solved") is True,
-                f"message ended with 'Guess: 42' but solved is {st3.get('solved')!r} "
-                f"and guesses are {st3['guesses']!r}")
+        g.check("respond: low", l1.respond(10, 42) == "Too low.", f"got {l1.respond(10, 42)!r}")
+        g.check("respond: high", l1.respond(90, 42) == "Too high.", f"got {l1.respond(90, 42)!r}")
+        g.check("respond: correct", l1.respond(42, 42) == "Correct!", f"got {l1.respond(42, 42)!r}")
     except NotImplementedYet as e:
-        _skip(g, ["env_response is correct"], f"still TODO: {e}")
+        _skip(g, ["respond is correct"], f"still TODO: {e}")
+        return
     except Exception as e:
-        _skip(g, ["env_response is correct"], f"{type(e).__name__}: {e}")
+        _skip(g, ["respond is correct"], f"{type(e).__name__}: {e}")
+        return
 
     try:
-        env, st = fresh(42)
-        g.check("game_solved is False before the game is won", _run(env.game_solved(st)) is False)
-        st["solved"] = True
-        g.check("game_solved is True after the game is won", _run(env.game_solved(st)) is True)
-        g.check("game_solved tolerates a state with no 'solved' key",
-                _run(env.game_solved({})) in (False, None),
-                "use state.get('solved', False) rather than state['solved']")
+        from verifiers.v1.utils.decorators import discover_decorated
+
+        task = l1.GuessTask(l1.GuessData(idx=0, prompt="p", answer="42"))
+        rewards = [f.__name__ for f in discover_decorated(task, "reward")]
+        metrics = [f.__name__ for f in discover_decorated(task, "metric")]
+        g.check("`solved` is registered as a reward", rewards == ["solved"], f"rewards: {rewards}")
+        g.check("`num_guesses` is registered as a metric (weight-free)",
+                metrics == ["num_guesses"],
+                f"metrics: {metrics} -- instrumentation belongs in @vf.metric, not "
+                f"a zero-weight reward")
+
+        def play(guesses):
+            t = l1.GuessTask(l1.GuessData(idx=0, prompt="p", answer="42"))
+            tr = l1.make_game_trace(t, guesses)
+            asyncio.run(t.score(tr))
+            return ({k: v.score for k, v in tr.rewards.items()}, dict(tr.metrics))
+
+        r, m = play(l1.binary_search_guesses(42))
+        g.check("a winning game scores solved=1.0", r.get("solved") == 1.0, f"got {r}")
+        g.close("num_guesses counts the guesses", m.get("num_guesses", -1), 7.0)
+        r2, _ = play([1, 2, 3, 4, 5, 6, 7])
+        g.check("a losing game scores solved=0.0", r2.get("solved") == 0.0, f"got {r2}")
+        r3, m3 = play([])
+        g.check("an empty game scores 0.0 without crashing",
+                r3.get("solved") == 0.0 and m3.get("num_guesses") == 0.0,
+                f"got rewards {r3}, metrics {m3} -- a rollout can fail before "
+                f"guessing anything")
     except NotImplementedYet as e:
-        _skip(g, ["game_solved is correct"], f"still TODO: {e}")
+        _skip(g, ["the scoring replays the transcript"], f"still TODO: {e}")
     except Exception as e:
-        _skip(g, ["game_solved is correct"], f"{type(e).__name__}: {e}")
+        _skip(g, ["the scoring replays the transcript"], f"{type(e).__name__}: {e}")
 
     try:
-        g.close("solved_reward pays for a win", l1.solved_reward({"solved": True}), 1.0)
-        g.close("solved_reward pays nothing for a loss", l1.solved_reward({"solved": False}), 0.0)
-    except NotImplementedYet as e:
-        _skip(g, ["solved_reward is correct"], f"still TODO: {e}")
-    except Exception as e:
-        _skip(g, ["solved_reward is correct"], f"{type(e).__name__}: {e}")
+        from verifiers.v1.utils.loaders import environment_class, taskset_class
 
-    try:
-        env = l1.build_env()
-        g.check("the environment allows 7 turns", env.max_turns == 7,
-                f"expected max_turns == 7 (binary search needs 7 for 1-100), got {env.max_turns}")
+        ts = taskset_class("exercise_1_guessing_game")
+        g.check("the module resolves as a taskset plugin", ts is l1.GuessTaskset,
+                f"taskset_class() found {ts!r}")
+        env = environment_class("exercise_1_guessing_game")
+        g.check("the module's own Env is found automatically", env is l1.GuessEnv,
+                f"environment_class() found {env!r}; exporting the Env beside the "
+                f"Taskset in __all__ is what wires the game up for the eval CLI")
     except Exception as e:
-        _skip(g, ["build_env is correct"], f"{type(e).__name__}: {e}")
+        _skip(g, ["the plugin exports resolve"], f"{type(e).__name__}: {e}")
 
 
 def check_lab2(g: Grader) -> None:
@@ -148,24 +134,21 @@ def check_lab2(g: Grader) -> None:
         g.close("shaped_reward pays 0.0 when no guess was made", l2.shaped_reward(none), 0.0)
         g.close("shaped_reward pays ~0.0 for the worst possible miss",
                 l2.shaped_reward(worst), 0.0, tol=1e-6)
-
         c, f = l2.shaped_reward(close), l2.shaped_reward(far)
         g.check("a closer guess scores higher than a distant one", c > f,
-                f"guessing 51 (off by 1) scored {c:.4f}; guessing 100 (off by 50) scored {f:.4f}")
-
-        # THE key property of this lab
+                f"off-by-1 scored {c:.4f}; off-by-50 scored {f:.4f}")
         g.check(
             "partial credit can never beat winning (the 0.5 cap)",
             c < 1.0 and c <= 0.5 + 1e-9,
-            f"a near-miss scored {c:.4f}. It must stay strictly below the 1.0 paid for "
-            f"winning -- otherwise the model can farm partial credit forever without "
-            f"finishing. This is the whole point of the exercise.",
+            f"a near-miss scored {c:.4f}. It must stay strictly below the 1.0 paid "
+            f"for winning -- otherwise the model can farm partial credit forever "
+            f"without finishing. This is the whole point of the exercise.",
         )
         g.check(
             "shaped_reward uses the CLOSEST guess, not the last one",
             abs(l2.shaped_reward({"secret": 50, "guesses": [51, 100], "solved": False}) - c) < 1e-9,
-            "a run that got within 1 and then wandered away should score the same as "
-            "one that got within 1 and stopped",
+            "getting within 1 then wandering away should score the same as getting "
+            "within 1 and stopping",
         )
     except NotImplementedYet as e:
         _skip(g, ["shaped_reward is correct"], f"still TODO: {e}")
@@ -174,25 +157,21 @@ def check_lab2(g: Grader) -> None:
 
     try:
         g.check("group_has_signal is False when every score is identical",
-                l2.group_has_signal(np.array([0.0, 0.0, 0.0, 0.0])) is False
-                or l2.group_has_signal(np.array([0.0, 0.0, 0.0, 0.0])) == False,  # noqa: E712
-                "a group of all-zeros produces no gradient, so this must be False")
+                not l2.group_has_signal(np.array([0.0, 0.0, 0.0, 0.0])),
+                "all-zeros produces no gradient, so this must be False")
         g.check("group_has_signal is False when every score is 1.0",
                 not l2.group_has_signal(np.array([1.0, 1.0, 1.0])),
                 "all-1.0 is the same failure as all-0.0 -- no spread, no learning")
         g.check("group_has_signal is True when scores differ",
-                bool(l2.group_has_signal(np.array([0.0, 1.0, 0.0, 1.0]))),
-                "these scores differ, so this group does produce a gradient")
-        g.check("group_has_signal handles tiny float differences as no signal",
+                bool(l2.group_has_signal(np.array([0.0, 1.0, 0.0, 1.0]))))
+        g.check("group_has_signal treats tiny float noise as no signal",
                 not l2.group_has_signal(np.array([0.3, 0.3, 0.3 + 1e-15])),
-                "use a tolerance, not exact equality -- floats from the shaped reward "
-                "will differ in the last bit")
+                "use a tolerance, not exact equality")
     except NotImplementedYet as e:
         _skip(g, ["group_has_signal is correct"], f"still TODO: {e}")
     except Exception as e:
         _skip(g, ["group_has_signal is correct"], f"{type(e).__name__}: {e}")
 
-    # the headline result of the unit
     try:
         frac_expert, win_expert = l2.measure(1.0, l2.sparse_reward, n_groups=120)
         g.check(
@@ -206,8 +185,8 @@ def check_lab2(g: Grader) -> None:
         g.check(
             "shaping rescues the weak player",
             frac_weak_shaped > frac_weak_sparse + 0.2,
-            f"sparse gave signal in {frac_weak_sparse * 100:.1f}% of groups, shaped in "
-            f"{frac_weak_shaped * 100:.1f}%; shaping should be dramatically better here",
+            f"sparse gave signal in {frac_weak_sparse * 100:.1f}% of groups, shaped "
+            f"in {frac_weak_shaped * 100:.1f}%",
         )
     except NotImplementedYet as e:
         _skip(g, ["the sparse-reward experiment runs"], f"still TODO: {e}")
@@ -218,74 +197,62 @@ def check_lab2(g: Grader) -> None:
 def check_lab3(g: Grader) -> None:
     print(f"\n{DIM}-- lab 3: tools --{RESET}")
     try:
+        import verifiers.v1 as vf
+
         import exercise_3_tools as l3
-        import verifiers as vf
     except Exception as e:
         _skip(g, ["lab 3 imports"], f"{type(e).__name__}: {e}")
         return
     g.check("lab 3 imports", True)
 
     try:
-        g.check("calculator does arithmetic", l3.calculator("17 * 23").strip() == "391",
-                f"calculator('17 * 23') returned {l3.calculator('17 * 23')!r}, expected '391'")
-        g.check("calculator handles precedence", l3.calculator("144 * 12 - 500").strip() == "1228",
-                f"got {l3.calculator('144 * 12 - 500')!r}, expected '1228'")
-        g.check("calculator returns a string", isinstance(l3.calculator("1 + 1"), str),
-                "tools must return text -- it becomes the model's next turn")
-
-        bad = l3.calculator("hello")
+        toolset = l3.CalcToolset(vf.ToolsetConfig())
+        g.check("calculator does arithmetic", toolset.calculator("17 * 23").strip() == "391",
+                f"got {toolset.calculator('17 * 23')!r}")
+        g.check("calculator handles precedence",
+                toolset.calculator("144 * 12 - 500").strip() == "1228",
+                f"got {toolset.calculator('144 * 12 - 500')!r}")
+        g.check("calculator returns a string", isinstance(toolset.calculator("1 + 1"), str),
+                "tool output is text -- it becomes the model's next turn")
+        bad = toolset.calculator("hello")
         g.check("calculator returns an error message instead of raising",
                 isinstance(bad, str) and "error" in bad.lower(),
-                f"on bad input it returned {bad!r}; return a helpful string so the "
-                f"model can correct itself, don't raise")
-        danger = l3.calculator("__import__('os')")
+                f"on bad input it returned {bad!r}; return an actionable string, "
+                f"don't raise -- a raised exception is a dead rollout")
+        danger = toolset.calculator("__import__('os')")
         g.check("calculator refuses non-arithmetic input",
                 isinstance(danger, str) and "error" in danger.lower(),
                 f"got {danger!r} -- never evaluate arbitrary model output")
-
-        doc = (l3.calculator.__doc__ or "")
-        g.check(
-            "calculator has a real docstring (the model reads it!)",
-            "TODO" not in doc and len(doc.strip()) > 40,
-            "the docstring becomes the tool description sent to the model. Replace the "
-            "TODO scaffolding with a real one-or-two-line description plus an example.",
-        )
+        doc = inspect.getdoc(l3.CalcToolset.calculator) or ""
+        g.check("the docstring is real (the model reads it!)",
+                "TODO" not in doc and len(doc.strip()) > 40 and "example" in doc.lower(),
+                "the docstring becomes the tool description sent to the model; "
+                "include an example call")
     except NotImplementedYet as e:
         _skip(g, ["calculator is correct"], f"still TODO: {e}")
+        return
     except Exception as e:
         _skip(g, ["calculator is correct"], f"{type(e).__name__}: {e}")
+        return
 
     try:
-        g.close("correct_answer accepts an exact match",
-                l3.correct_answer([{"role": "assistant", "content": "Answer: 391"}], "391"), 1.0)
-        g.close("correct_answer rejects a superset number",
-                l3.correct_answer([{"role": "assistant", "content": "Answer: 3912"}], "391"), 0.0)
-        g.close("correct_answer rejects a reply with no Answer line",
-                l3.correct_answer([{"role": "assistant", "content": "it's 391"}], "391"), 0.0)
+        toolset = l3.CalcToolset(vf.ToolsetConfig())
+        desc = l3.tool_descriptions(toolset)
+        g.check("tool_descriptions finds the tool",
+                len(desc) == 1 and desc[0][0] == "calculator",
+                f"got {[(n, d[:20]) for n, d in desc]}")
+        g.check("the description is the docstring",
+                desc[0][1] == (inspect.getdoc(l3.CalcToolset.calculator) or "").strip()
+                or desc[0][1] == (l3.CalcToolset.calculator.__doc__ or "").strip(),
+                "return the stripped docstring, exactly what register() sends")
     except NotImplementedYet as e:
-        _skip(g, ["correct_answer is correct"], f"still TODO: {e}")
+        _skip(g, ["tool_descriptions is correct"], f"still TODO: {e}")
     except Exception as e:
-        _skip(g, ["correct_answer is correct"], f"{type(e).__name__}: {e}")
-
-    try:
-        env = l3.build_tool_env([l3.calculator])
-        g.check("build_tool_env returns a ToolEnv", isinstance(env, vf.ToolEnv))
-        g.check("the tool is registered", "calculator" in env.tool_map,
-                f"tool_map has {list(env.tool_map)}")
-        names = [t["name"] for t in env.tool_defs]
-        g.check("a tool definition was generated for the model", names == ["calculator"],
-                f"got {names}")
-        desc = env.tool_defs[0].get("description", "")
-        g.check("the tool description came from your docstring", len(desc.strip()) > 40,
-                f"the model will see: {desc!r}")
-    except NotImplementedYet as e:
-        _skip(g, ["build_tool_env is correct"], f"still TODO: {e}")
-    except Exception as e:
-        _skip(g, ["build_tool_env is correct"], f"{type(e).__name__}: {e}")
+        _skip(g, ["tool_descriptions is correct"], f"{type(e).__name__}: {e}")
 
 
 def main() -> None:
-    g = Grader("Unit 03 — conversations and tools")
+    g = Grader("Unit 03 — conversations and tools (v1)")
     check_lab1(g)
     check_lab2(g)
     check_lab3(g)

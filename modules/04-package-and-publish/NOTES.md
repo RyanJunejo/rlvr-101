@@ -6,21 +6,19 @@
 
 ## Part A — Packaging (20 pts)
 
-**A1. (10 pts)** Why is the convention a `load_environment()` *function* rather
-than a module-level variable holding an environment? Give all three reasons.
+**A1. (10 pts)** State the taskset packaging contract in one sentence, and
+describe what the loader actually does with your module.
 
 > 
 
-**A2. (5 pts)** Why must every argument to `load_environment()` have a default?
+**A2. (5 pts)** Why must every field on your `TasksetConfig` have a default?
 
 > 
 
-**A3. (5 pts)** Why does forwarding `**kwargs` matter more for a *published* task
-than for one you only run yourself?
+**A3. (5 pts)** Why does the lab insist on a difficulty knob? Connect your
+answer to the Unit 03 result about groups with no spread.
 
 > 
-
----
 
 ## Part B — Confidence (40 pts)
 

@@ -6,8 +6,8 @@
 > (optional); a Prime Intellect account for the publishing section
 >
 > **By the end of this unit you will be able to:**
-> 1. Package a task as an installable module using the `load_environment()`
->    convention.
+> 1. Package a taskset as an installable module, with its config as the
+>    public API.
 > 2. Publish it to the Environments Hub.
 > 3. Put a confidence interval on an evaluation score, and say what sample size
 >    a claim requires.
@@ -34,48 +34,57 @@ model comparison is noise, and they don't know it.
 
 ---
 
-## 2. Packaging: the `load_environment` convention
+## 2. Packaging: the taskset contract
 
-A `verifiers` task is a normal, installable Python package with one requirement:
-it exposes a function called `load_environment()` that returns a configured
-environment.
+A publishable task is an installable Python package whose module exports exactly
+one `Taskset` subclass through `__all__`:
 
 ```
-my-task/
+mult-task/
   pyproject.toml
-  my_task.py          ← contains load_environment()
+  mult_task/
+    __init__.py       <- ends with  __all__ = ["MultTaskset"]
 ```
+
+That single line is the whole registration. The loader — the same one behind
+the eval CLI and the trainer — imports your module, reads `__all__`, and finds
+the one class that subclasses `Taskset`. A Hub id like `org/mult-task@1.0` adds
+only an install step first; a local module name skips even that.
+
+The second half of the contract is the **config**. Your `TasksetConfig`
+subclass is the public API of the task — every field on it becomes a knob a
+runner can turn without touching your code:
 
 ```python
-# my_task.py
-import verifiers as vf
-
-def load_environment(num_problems: int = 100, **kwargs) -> vf.Environment:
-    dataset = build_dataset(num_problems)
-    return vf.SingleTurnEnv(dataset=dataset, rubric=build_rubric(), **kwargs)
+class MultConfig(vf.TasksetConfig):
+    num_tasks: int = 64
+    digits: int = 2          # the difficulty knob
 ```
 
-That's the entire contract. Anyone can then do:
-
-```python
-env = vf.load_environment("my-task", num_problems=50)
+```bash
+uv run eval mult_task --env.taskset.digits 4      # CLI flag
 ```
 
-**Why a function rather than a module-level variable?** Three reasons, and
-they're worth understanding rather than memorising:
+```toml
+[env.taskset]                                     # or a training TOML
+id = "org/mult-task"
+digits = 4
+```
 
-- **Arguments.** Callers can configure the task — dataset size, difficulty,
-  which split — without editing your code.
-- **Laziness.** Building a dataset can mean downloading gigabytes. A function
-  means that only happens when someone actually wants the environment, not on
-  import.
-- **Freshness.** Each call builds a new object, so two training runs can't
-  accidentally share mutable state. (Same reasoning as Unit 03's "don't put game
-  state on `self`.")
+Three properties the lab insists on, each with a reason you've already met:
 
-Everything else is standard Python packaging. Your `pyproject.toml` declares
-dependencies — and this matters more than usual, because someone else's training
-run will install your package on a machine you've never seen.
+- **Every config field has a default.** Tooling constructs the config bare to
+  inspect your task; a required field breaks that.
+- **Generation is seeded.** Two people running "the same" taskset must see the
+  same questions, or their numbers aren't comparable.
+- **There is a difficulty knob.** Unit 03 measured what happens without one:
+  the model saturates the task, every group scores identically, and the task
+  teaches nothing forever after. `digits` is what lets a user find the band
+  where their model succeeds *sometimes*.
+
+One version note: verifiers 0.3.0's hook is `load()`; the lab-cookbook shows
+`load_tasks()`, which tracks a newer release. The installed source wins —
+another instance of the course's standing rule.
 
 ## 3. Publishing to the Hub
 
@@ -83,20 +92,19 @@ run will install your package on a machine you've never seen.
 uv tool install prime
 prime login
 
-prime env init my-task      # scaffolds the directory
-# ... write your environment ...
-prime env push              # publishes it
+prime env init mult-task     # scaffolds the directory
+# move your taskset module + pyproject in
+prime env push               # publishes it
 ```
 
-Others then install it with `prime env install <your-name>/my-task`.
+Others then run it by id — `uv run eval yourname/mult-task` — and the loader
+installs it from the Hub on first use.
 
-Before you push, ask yourself the question that separates a useful published task
-from noise on the Hub: **would this produce a useful gradient?** From Unit 03, a
-task where the model always succeeds or always fails teaches nothing. Publishing
-a task that's saturated is publishing an eval, not a training environment. Both
-are fine — just label it honestly.
-
----
+Before you push, ask the question that separates a useful published task from
+noise on the Hub: **at which difficulty does a model people care about succeed
+sometimes?** Measure it (section 5 gives you the tool), and put the number in
+your README. A task without a known working difficulty band is one nobody can
+decide whether to train on.
 
 ## 4. Now the part that will change how you work
 
@@ -189,7 +197,7 @@ biased.
 
 | file | what you build |
 |---|---|
-| `exercise_1_packaging.py` | package a task with `load_environment()` |
+| `exercise_1_packaging.py` | a taskset package with a difficulty knob |
 | `exercise_2_evaluation.py` | confidence intervals and required sample sizes |
 | `exercise_3_pass_at_k.py` | `pass@k` done properly |
 
@@ -207,7 +215,8 @@ uv run python modules/04-package-and-publish/verify.py
 
 You should be able to say:
 
-> A task is an installable package exposing `load_environment()`. And a score
+> A task is an installable package exporting one `Taskset` via `__all__`,
+> with its config as the public API. And a score
 > without a sample size is not a result — differences smaller than the confidence
 > intervals are noise, halving uncertainty costs four times the samples, and
 > `pass@k` tells me whether a task is trainable at all before I rent a GPU.

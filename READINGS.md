@@ -87,8 +87,19 @@ statement of how the system is organized.
 
 **`verifiers`** — <https://github.com/PrimeIntellect-ai/verifiers>
 
-Read the source over the docs; the docs lag the library. `envs/environment.py`
-and `rubrics/rubric.py` are each readable in one sitting.
+Read the source over the docs; the docs lag the library. The files that matter
+are `v1/task.py`, `v1/taskset.py`, and `v1/trace.py` — each readable in one
+sitting. For legacy environments (Unit 06): `envs/environment.py` and
+`rubrics/rubric.py`.
+
+**lab-cookbook** — <https://github.com/PrimeIntellect-ai/lab-cookbook>
+
+Prime Intellect's own guided walkthrough of the same stack: thirteen guides from
+setup through custom solvers, with runnable configs. Guides 01–03 cover this
+course's Units 02–05 from the vendor's angle; guide 13 is their authoring
+contract and failure-mode list, worth reading before the capstone. Note their
+code sometimes tracks a newer verifiers than the pinned one here — where they
+disagree, your installed source wins.
 
 **Environments Hub announcement** —
 <https://www.primeintellect.ai/blog/environments>

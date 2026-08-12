@@ -72,28 +72,28 @@ numpy, no GPU, runs in seconds. You build up from slot machines to **GRPO**, the
 algorithm that trained most open reasoning models of the last two years. By the
 end it should feel obvious rather than impressive.
 
-**02 — Writing the scoring function.** Now that you can train on a score, the
-hard part is writing a score that means what you think it means. You'll write a
-reward function with a hole in it, watch a good model drive a truck through the
-hole, then fix it. This is the most useful exercise here.
+**02 — Writing the scoring function.** Build your first task on `verifiers.v1`
+and run it against a live model with one command. Then the reward-hacking lab:
+a grader with a hole in it, an optimizer-shaped truck, and a 12-attack suite
+your fix has to survive. The most useful exercise in the course.
 
-**03 — Conversations and tools.** Multi-turn tasks, where the model's move
-changes what it sees next. You build a game, then measure the **sparse reward
-problem** — why a model that's bad at a task can get *zero* learning signal — and
-fix it with partial credit.
+**03 — Conversations and tools.** Multi-turn tasks: an `Env` that plays the
+other side of the conversation, graders that replay the transcript, and the
+**sparse reward problem** — why a model that's bad at a task can get *zero*
+learning signal — measured and then fixed with partial credit.
 
-**04 — Packaging, publishing, and honest evaluation.** Making your work
-installable and sharing it. Plus the statistics half: confidence intervals,
-required sample sizes, and `pass@k` as a check on whether a task is trainable at
-all before you rent a GPU.
+**04 — Packaging, publishing, and honest evaluation.** The taskset contract —
+one class through `__all__`, config as the public API, a difficulty knob — and
+the statistics half: confidence intervals, required sample sizes, and `pass@k`
+as a check on whether a task is trainable at all before you rent a GPU.
 
 **05 — Training for real.** Read a `prime-rl` config and recognise every number
 in it from earlier units. Work out what a run costs before starting it. Then rent
 a GPU, train, and read the curve critically.
 
-**06 — The redesigned API.** Port your Unit 02 task to the v1
-taskset/harness/runtime split, and find out what it buys you: a task definition <!-- prose-ok: "harness" is the verifiers v1 API term -->
-that no longer assumes how the model will attempt it.
+**06 — The legacy API.** The Hub still carries environments on the original
+API. Learn to read them, port one, and prove the port changed nothing — plus
+the two bug classes the current design retired.
 
 **07 — Capstone.** Choose and build a task nobody has built, take it from idea to
 published environment, and write up what happened. Six stages and a rubric.
