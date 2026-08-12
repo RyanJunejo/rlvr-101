@@ -66,6 +66,7 @@ Each unit is a folder under `modules/`, containing:
 | `exercise_*.py` | starter code with `TODO`s | lab assignment |
 | `verify.py` | automatic grading of your code | autograder |
 | `NOTES.md` | written questions, with point values | problem set |
+| `THEORY.md` | the derivations behind the unit's rules | the reading you do after |
 
 Every problem set opens with a table of the terms its questions use, and every
 exercise file ends with the same for its own code, so the vocabulary is where
@@ -77,6 +78,12 @@ code runs.
 
 **The intended loop:** read the lecture notes → do the lab → run the autograder →
 answer the problem set → compare against the solutions and argue with them.
+
+`THEORY.md` sits outside that loop on purpose. The lecture notes teach you what
+to do; the theory explains why it's the right thing, derives the formulas the
+labs hand you, and names the results so you can find the literature. Nothing in
+it is needed to complete a unit — read it once the unit's labs are behind you
+and the vocabulary has stopped being new.
 
 ## Schedule
 

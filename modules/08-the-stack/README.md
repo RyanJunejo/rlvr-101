@@ -19,6 +19,9 @@
 ships weekly — their blog carried 11 posts between May and August 2026 — so
 treat dated claims as dated. Section 6 is about staying current without me.
 
+When you've finished the labs, [`THEORY.md`](THEORY.md) goes deeper: the
+bottleneck argument for open environments, and where it might be wrong.
+
 ---
 
 ## 1. The shape of the whole thing

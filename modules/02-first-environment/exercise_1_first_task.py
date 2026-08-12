@@ -44,6 +44,7 @@ import re
 import sys
 from collections.abc import Iterator
 from pathlib import Path
+import trace
 
 import verifiers.v1 as vf
 from verifiers.v1.trace import TraceTask
@@ -62,7 +63,7 @@ SYSTEM_PROMPT = (
 )
 
 
-class MathData(vf.TaskData):
+class MathData(vf.TaskData):    
     """The data for ONE question.
 
     Subclass `vf.TaskData` and declare one field, pydantic-style:
@@ -75,7 +76,7 @@ class MathData(vf.TaskData):
     you read in traces.jsonl afterwards is exactly what the task was built from.
     """
 
-    # TODO: declare the `answer` field.
+    answer: str
 
 
 class MathTask(vf.Task[MathData, vf.State, vf.TaskConfig]):
@@ -112,7 +113,16 @@ class MathTask(vf.Task[MathData, vf.State, vf.TaskConfig]):
     There is no separate weights list to keep aligned by position.
     """
 
-    # TODO: write the two async reward methods.
+    @vf.reward
+    async def correct_answer(self, task: MathData, trace: vf.Trace) -> float:
+        matches = ANSWER_RE.findall(trace.last_reply)
+        if not matches:
+            return 0.0
+        return 1.0 if matches[-1].strip().rstrip(".") == task.answer else 0.0
+
+    @vf.reward(weight=0.2)
+    async def has_answer_line(self, trace: vf.Trace) -> float:
+        return 1.0 if ANSWER_RE.search(trace.last_reply) else 0.0
 
 
 def make_trace(task: MathTask, reply: str) -> vf.Trace:
@@ -145,7 +155,16 @@ def make_trace(task: MathTask, reply: str) -> vf.Trace:
         a Trace ready to score.
     """
     # TODO: build and return the trace.
-    return todo("make_trace: Trace(task=..., agent=...), append a sampled node")
+    trace = vf.Trace(
+            task=TraceTask(type=type(task).__name__, data=task.data),
+            agent=vf.AgentInfo(config=vf.AgentConfig(), name="offline",
+                               trainable=False),
+        )
+    trace.nodes.append(
+            vf.MessageNode(message=vf.AssistantMessage(content=reply),
+                           sampled=True)
+        )
+    return trace  
 
 
 # ---------------------------------------------------------------------------

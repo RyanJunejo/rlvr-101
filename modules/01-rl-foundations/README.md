@@ -22,6 +22,10 @@
 New terms are defined as they appear. Anything you want to look up again is in
 [`GLOSSARY.md`](../../GLOSSARY.md).
 
+When you've finished the labs, [`THEORY.md`](THEORY.md) goes deeper: the policy
+gradient theorem derived, why a baseline is provably free, and GRPO as a choice
+of baseline.
+
 ---
 
 ## 1. Start with the problem
@@ -291,7 +295,10 @@ two years. It is also, as of 2026, the *default* rather than the only option —
 `prime-rl` has grown an algorithms layer with multi-agent and hierarchical
 variants, and hooks for bringing your own advantage function. Every one of them
 computes an advantage and pushes probability toward whatever scored better; the
-group mean is one choice of baseline within that family. Unit 08 says more. Once it's boring to you, you're ready for Unit 02, where all the
+group mean is one choice of baseline within that family. Unit 08 says more, and
+this unit's [`THEORY.md`](THEORY.md) derives why the baseline is free at all.
+
+Once that summary is boring to you, you're ready for Unit 02, where all the
 remaining difficulty lives: **writing the scoring function.**
 
 ## Optional reading

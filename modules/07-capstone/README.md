@@ -8,6 +8,9 @@
 > **What you produce:** a task worth someone else's GPU time, taken from an idea
 > to a published environment with an honest write-up of what happened.
 
+When you've finished the labs, [`THEORY.md`](THEORY.md) goes deeper: what makes
+an empirical claim believable, and how to write an honest negative result.
+
 ---
 
 ## The shape of it

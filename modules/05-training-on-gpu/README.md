@@ -15,6 +15,9 @@
 > **Deliverables:** 2 offline labs (autograded), plus the runbook in section 5,
 > which is verified by your own training curve rather than by a script.
 
+When you've finished the labs, [`THEORY.md`](THEORY.md) goes deeper: why async
+training is off-policy, and where clipping and the KL term come from.
+
 ---
 
 ## A note on what's verified here

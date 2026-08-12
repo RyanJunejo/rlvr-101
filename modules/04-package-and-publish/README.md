@@ -17,6 +17,9 @@
 >
 > **Deliverables:** 3 labs, autograder green, problem set in `NOTES.md`.
 
+When you've finished the labs, [`THEORY.md`](THEORY.md) goes deeper: where the
+formulas come from, and one place the lab's formula is the wrong tool.
+
 ---
 
 ## 1. Two unrelated things, and why they're in the same unit
@@ -188,8 +191,9 @@ pass@k  =  1 − C(n−c, k) / C(n, k)
 ```
 
 Read it as: "one minus the probability that all `k` of your draws come from the
-`n−c` failures." Lab 3 has you implement it, and shows why the naive version is
-biased.
+`n−c` failures." Lab 3 has you implement it, and measures why the naive version
+loses — it's unbiased too, but a single run of it is a coin flip rather than a
+number.
 
 ---
 

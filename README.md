@@ -33,6 +33,7 @@ Each module is a folder under `modules/`:
 | `verify.py` | run it to grade yourself. It says which specific thing broke. |
 | `WORKED_EXAMPLES.md` | the arithmetic done by hand, with real numbers |
 | `NOTES.md` | questions to answer in your own words |
+| `THEORY.md` | the derivations, once the labs are done |
 
 Fully explained answers live in `solutions/`, mirroring the same structure. They
 explain *why* each piece is the way it is, so they're worth reading even after

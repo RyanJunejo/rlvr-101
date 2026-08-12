@@ -64,7 +64,16 @@ class QuizTask(vf.Task[QuizData, vf.State, vf.TaskConfig]):
        measures ONE thing, so when a score moves you know what moved.
     """
 
-    # TODO: write the two async reward methods with their weights.
+    @vf.reward
+    async def correct_answer(self, task: QuizData, trace: vf.Trace) -> float:
+        matches = ANSWER_RE.findall(trace.last_reply)
+        if not matches:
+            return 0.0
+        return float(matches[-1].strip().rstrip(".")) == float(task.answer)
+    
+    @vf.reward(weight=0.2)
+    async def has_answer_line(self, trace: vf.Trace) -> float:
+        return 1.0 if ANSWER_RE.search(trace.last_reply) else 0.0
 
 
 def describe_rewards(task: vf.Task) -> list[tuple[str, float]]:

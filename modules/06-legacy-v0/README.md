@@ -15,6 +15,9 @@
 >
 > **Deliverables:** 2 labs, autograder green, problem set in `NOTES.md`.
 
+When you've finished the labs, [`THEORY.md`](THEORY.md) goes deeper: bug
+classes, and why a silent failure costs more than a loud one.
+
 ---
 
 ## 1. Why a legacy unit exists

@@ -20,6 +20,9 @@
 New terms are defined as they appear; [`GLOSSARY.md`](../../GLOSSARY.md) has them
 all in one place.
 
+When you've finished the labs, [`THEORY.md`](THEORY.md) goes deeper: proxy vs.
+true objective, and why optimization pressure turns a flaw into an exploit.
+
 ---
 
 ## 1. Where we are

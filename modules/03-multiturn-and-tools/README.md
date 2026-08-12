@@ -19,6 +19,10 @@
 >
 > **Deliverables:** 3 labs, autograder green, problem set in `NOTES.md`.
 
+When you've finished the labs, [`THEORY.md`](THEORY.md) goes deeper: MDPs,
+credit assignment, and the shaping theorem behind the 0.5 cap — with a demo
+that computes it.
+
 ---
 
 ## 1. What changes when there's more than one turn

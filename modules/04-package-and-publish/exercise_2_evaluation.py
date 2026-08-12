@@ -91,6 +91,14 @@ def confidence_interval(successes: int, n: int) -> tuple[float, float]:
     rarely matters in practice, but claiming the first one in a paper will get
     you an unpleasant review.
 
+    A REAL LIMITATION, because you will hit it: this is the Wald interval, the
+    standard textbook one, and it is BADLY WRONG near 0 and 1. Simulated over
+    20,000 experiments at a true rate of 0.95 with n=20, it contains the truth
+    only 63.6% of the time while claiming 95%. That is exactly the regime you
+    care about when checking whether a task is saturated. Use it to learn what
+    an interval is; use the Wilson interval for real work. THEORY.md section 2
+    has the numbers and the better formula.
+
     Args:
         successes: number correct.
         n: number of questions.
