@@ -18,7 +18,7 @@ exploitable, X and Y are measurements of your grader's holes, and training moved
 the model along them. The reward curve cannot tell you this — it *is* the
 measurement.
 
-**2. The difference has to exceed the noise.** This is Unit 04. With small `n`,
+**2. The difference has to exceed the noise.** This is Unit 04. With small $n$,
 two identical models produced a 15-point gap in 34.9% of experiments. Any before
 / after comparison without an interval is a coin flip you've labelled a finding.
 

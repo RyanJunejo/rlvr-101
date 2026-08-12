@@ -62,7 +62,7 @@ one for training.
 
 ## 2. What it costs
 
-Two H100s at GMI's SXM rate is about $4.80/hour. Your $50 of credit is therefore
+Two H100s at GMI's SXM rate is about \$4.80/hour. Your \$50 of credit is therefore
 around **10 hours of two-GPU time**, which is enough for everything in this unit
 several times over, provided you turn the box off.
 
