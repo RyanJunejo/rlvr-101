@@ -74,13 +74,33 @@ The three ways people burn credits, in order of how often they happen:
 
 Lab 1 has you build the arithmetic so the numbers are yours rather than mine.
 
+### You may not have to rent anything
+
+Renting two GPUs and driving `prime-rl` yourself is one path. Prime Intellect's
+own platform, **Lab**, is the other: hosted training and hosted evaluation on
+their infrastructure, priced per token rather than per cluster-hour, with the
+trained LoRA adapter deployable straight to their inference endpoint.
+
+Token pricing changes the shape of the decision. Renting bills you for wall
+clock — including the hours the box sits idle while you read logs, and the
+overnight you forgot to shut it down. Token pricing bills you for work done.
+For a first training run, where most of your time goes to reading output and
+thinking, that difference is most of the bill.
+
+This unit teaches the rented-box path because it makes the machinery visible:
+you see the three processes, you read the config, you own the failure modes.
+That understanding transfers to Lab, and is hard to acquire from a dashboard.
+Once you have it, use whichever is cheaper for the job.
+
 ## 3. Reading the config
 
-Here is `configs/basic/reverse-text/rl.toml` from the repository, in full. It is
-worth reading closely, because almost every number in it is something you already
-understand.
+Here is `configs/basic/reverse-text/rl.toml` from the repository, complete and
+verbatim. Almost every number in it is something you already understand.
 
 ```toml
+# Reverse-text on 2 GPUs (1 trainer + 1 inference) — the smallest end-to-end RL
+# loop (single-turn, 0.6B). Dev-sized mirror of examples/basic/reverse-text.
+
 max_steps = 20
 seq_len = 2048
 
@@ -90,6 +110,10 @@ num_infer_gpus = 1
 
 [model]
 name = "PrimeIntellect/Qwen3-0.6B-Reverse-Text-SFT"
+
+[wandb]
+project = "reverse-text"
+name = "reverse-text"
 
 [orchestrator]
 batch_size = 128
@@ -112,6 +136,13 @@ type = "subprocess"
 
 [trainer.optim]
 lr = 3e-6
+
+[ckpt] # Checkpoint at the end of training
+
+[inference]
+
+[orchestrator.renderer]
+name = "prime-qwen3"
 ```
 
 **`group_size = 16`** is the `G` from Unit 01, exercise 4. Sixteen answers to the
@@ -125,6 +156,18 @@ it gets its own GPU.
 
 **`lr = 3e-6`** is small. RL post-training nudges an already-trained model; the
 large learning rates you'd use for pretraining would destroy it.
+
+**`[ckpt]` and `[inference]`, both empty.** An empty table means "on, with
+defaults" — `[ckpt]` saves a checkpoint at the end, and without it a finished
+run leaves you nothing. Cheap insurance on rented hardware.
+
+**`[orchestrator.renderer]`** picks how text becomes tokens. Chat templates are
+usually applied server-side by the inference engine, which is fine until you
+need to know exactly which tokens the model was trained on — and in RL you do,
+because the trainer computes gradients per token. Renderers move templating
+client-side so generation and training agree. The comment in the real file
+explains why this run names one explicitly: the `-SFT` suffix on the model name
+misses the automatic lookup table.
 
 **`taskset` / `harness` / `runtime`** is the vocabulary you've used since Unit
 02. `harness.id = "null"` is the same flag from your first live eval: no agent

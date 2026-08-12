@@ -5,8 +5,8 @@
 > **Time:** 8–12 hours · **Prerequisites:** all previous units · **Needs:** an
 > API key, and a GPU box for stage 5
 >
-> **What you produce:** a task nobody has built, taken from an idea to a
-> published environment with an honest write-up of what happened.
+> **What you produce:** a task worth someone else's GPU time, taken from an idea
+> to a published environment with an honest write-up of what happened.
 
 ---
 
@@ -31,6 +31,16 @@ Stage 3 exists to stop stage 4 wasting money, and stage 6 is where most of the
 learning lands.
 
 ## Stage 1 — Choose a task
+
+**First, go look at what exists.** The Environments Hub passed 365,000
+environments in 2026 — software engineering, terminal and search tasks at corpus
+scale. "Nobody has built this" is now an unlikely claim and a bad goal.
+
+The useful goals are narrower and more achievable: a task in a domain you know
+that the corpus covers badly, a known task at a difficulty band nobody has
+published numbers for, or an existing environment whose scoring you can show is
+exploitable and then fix. That last one is a real contribution, and after Unit
+02 you are unusually well equipped to make it.
 
 Three constraints, and the third is the one people get wrong.
 

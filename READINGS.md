@@ -108,6 +108,47 @@ The reasoning behind the product. Strategy, not mechanics.
 
 ---
 
+## Recent developments (as of 2026-08-12)
+
+This company ships weekly, so this section dates fastest. Unit 08 covers the
+picture; these are the primary sources behind it.
+
+**"Releasing Lab: the training platform for self-improving agents"** (May 2026)
+<https://www.primeintellect.ai/blog/lab-is-open>
+The hosted product: training, evaluation, adapter deployment and inference in
+one place, priced per token. Read it for the shape of the commercial offering
+and where the open-source stack sits underneath it.
+
+**"Systematic Reward Hacking and Prime Sprints"** (May 2026)
+Their own writeup of the failure mode Unit 02's lab reproduces. Read it right
+after doing the lab.
+
+**"verifiers v1: Decomposing Tasksets and Harnesses for Agentic RL"** (July 2026)
+The design argument for the API the course teaches — why the task definition
+stopped containing an assumption about how the model attempts it.
+
+**"Scaling Agentic RL: 365,000+ Environments"** (July 2026)
+The Hub at corpus scale. Relevant to the capstone: it changes what counts as a
+useful contribution.
+
+**"prime-rl gets an Algorithms layer"** (July 2026)
+GRPO becomes one option among several, with hooks for your own advantage
+function. Nothing in Unit 01 stops being true; it stops being the only thing
+that's true.
+
+**"Prime Agent: A self-improving RLM agent"** (August 2026)
+<https://www.primeintellect.ai/blog/prime-agent>
+The frontier end: context as a variable, sub-agents as function calls, and a
+harness the agent edits from inside its own trajectory. Reported 95.5% on <!-- prose-ok: harness is the verifiers v1 API term -->
+ARC-AGI-3 against a 95.4% human-expert baseline — read that number with Unit
+04's questions in hand. Start with "Recursive Language Models: the paradigm of <!-- prose-ok: quoted post title -->
+2026" (January 2026) if the RLM idea is new to you.
+
+**"$130M Series A to Build the Open Superintelligence Stack"** (July 2026)
+Company context, if you want to know who's funding the thing you're learning.
+
+---
+
 ## What you can safely ignore
 
 If you go looking for RL material online you'll find a lot about Atari, DQN,

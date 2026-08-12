@@ -216,6 +216,10 @@ replies. The broken version scores 5/12.
 - **"Concrete Problems in AI Safety"** (arXiv:1606.06565), section 3 only — the
   reward hacking section. Written years before any of this tooling existed and
   it predicts every failure you're about to see.
+- **"Systematic Reward Hacking and Prime Sprints"** — Prime Intellect's own
+  writeup (May 2026). Worth reading right after the lab, as evidence this isn't
+  a teaching toy: the people who build the stack you're using publish on the
+  same failure you just reproduced in twelve canned strings.
 
 ## Running
 

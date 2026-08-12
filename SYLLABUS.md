@@ -1,6 +1,6 @@
 # RLVR 101 — Training Language Models with Verifiable Rewards
 
-**A hands-on course.** Eight units, roughly 30–40 hours of work, taken at your
+**A hands-on course.** Nine units, roughly 32–42 hours of work, taken at your
 own pace.
 
 ---
@@ -52,6 +52,8 @@ By the end of the course you should be able to:
    understanding of what your numbers can and cannot support.
 6. **Run** a real RL training job on GPU hardware and read its output critically.
 7. **Package and publish** a task environment for others to use.
+8. **Situate** all of it: name every piece of the Prime Intellect stack, and
+   read an installed library as evidence of where a project is heading.
 
 ## How the course works
 
@@ -84,6 +86,7 @@ answer the problem set → compare against the solutions and argue with them.
 | **05** | Training for real | 4–6 h | **GPU** |
 | **06** | The legacy API (v0) | 1–2 h | — |
 | **07** | Capstone project | 8–12 h | **GPU** |
+| **08** | The whole stack, and where it's going | 1–2 h | — |
 
 Units 00–04 and 06 run on a laptop and cost only API tokens. Units 05 and 07
 need an NVIDIA GPU — the training library does not run on Apple silicon — so

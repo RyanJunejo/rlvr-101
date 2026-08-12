@@ -87,7 +87,10 @@ def group_advantages(rewards: np.ndarray) -> np.ndarray:
     Returns:
         shape (G,), the advantages.
     """
-    # TODO: implement group-relative advantages, handling the zero-std case.
+    # TODO:    done implement group-relative advantages, handling the zero-std case.
+    advantages = (rewards - rewards.mean()) / (rewards.std() + EPS)
+    if rewards.std() == 0:
+        return np.zeros_like(rewards)
     return todo("group_advantages: (r - mean) / (std + eps), all-zeros if std == 0")
 
 

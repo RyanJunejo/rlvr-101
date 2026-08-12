@@ -287,7 +287,11 @@ If the module worked, this should sound obvious rather than impressive:
 > predict that average — you can just sample a few times and look.
 
 That's the algorithm behind essentially every open reasoning model of the last
-two years. Once it's boring to you, you're ready for Unit 02, where all the
+two years. It is also, as of 2026, the *default* rather than the only option —
+`prime-rl` has grown an algorithms layer with multi-agent and hierarchical
+variants, and hooks for bringing your own advantage function. Every one of them
+computes an advantage and pushes probability toward whatever scored better; the
+group mean is one choice of baseline within that family. Unit 08 says more. Once it's boring to you, you're ready for Unit 02, where all the
 remaining difficulty lives: **writing the scoring function.**
 
 ## Optional reading

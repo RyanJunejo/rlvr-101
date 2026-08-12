@@ -5,8 +5,7 @@
 > **Time:** 30 minutes · **Prerequisites:** none · **Needs:** an API key
 >
 > **By the end of this unit you will be able to:**
-> 1. Name the four pieces of the Prime Intellect stack and say what each one
->    does.
+> 1. Name the pieces of the Prime Intellect stack and say what each one does.
 > 2. Explain how they chain together, and which single piece you'll actually be
 >    writing.
 > 3. Run a working environment end to end and get a real score back.
@@ -18,8 +17,8 @@
 ## 1. The 90-second version
 
 Prime Intellect builds open-source versions of the tools that big AI labs use
-internally to train models with reinforcement learning. There are four pieces,
-and they chain together in one direction:
+internally to train models with reinforcement learning. Four pieces, chained in
+one direction:
 
 ```
    verifiers          Environments Hub          prime-rl            compute
@@ -28,7 +27,12 @@ and they chain together in one direction:
    task               other people's            it                  GPUs
 ```
 
-Each one is smaller than it sounds. Taking them in turn:
+They also sell the same loop as a hosted product called **Lab** — you point it
+at a task and it runs the training and evaluation on their infrastructure. This
+course uses the open-source pieces, because seeing the machinery is the point;
+Unit 08 covers where Lab fits and when it's the better choice.
+
+Each piece is smaller than it sounds. Taking them in turn:
 
 ### 1. `verifiers` — where you'll spend most of your time
 
@@ -78,10 +82,10 @@ stack. They're the evidence it works end to end.
 
 ## 2. What's coming, and why in this order
 
-Notice something missing from that list: there's no menu of algorithms. You
-don't pick between five different training methods here. The field has largely
-settled on one family (which you'll build in Unit 01), and all the interesting
-design work moved into **what you choose to reward**.
+Notice something missing from that list: there's no menu of algorithms to
+choose between. The field has largely settled on one family — you'll build the
+canonical member of it in Unit 01 — and the interesting design work moved into
+**what you choose to reward**.
 
 That's why Unit 01 has you write the training algorithm by hand exactly once,
 so it stops being a black box — and then we essentially never write one again.
@@ -89,7 +93,7 @@ Everything after that is about the scoring function.
 
 ---
 
-## Lab: get it running
+## Do the setup
 
 You need one model API endpoint. Almost anything works — OpenAI, GMI Cloud,
 Together, OpenRouter, or a server you run yourself — because `verifiers` talks to

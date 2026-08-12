@@ -95,8 +95,13 @@ a GPU, train, and read the curve critically.
 API. Learn to read them, port one, and prove the port changed nothing — plus
 the two bug classes the current design retired.
 
-**07 — Capstone.** Choose and build a task nobody has built, take it from idea to
-published environment, and write up what happened. Six stages and a rubric.
+**07 — Capstone.** Choose and build a task worth someone else's GPU time, take
+it from idea to published environment, and write up what happened. Six stages
+and a rubric.
+
+**08 — The whole stack.** Where everything you built sits: the hosted platform,
+the model line, the frontier agent work, and how to read an installed library as
+evidence of where a project is going. Mostly reading.
 
 ## Hardware
 
