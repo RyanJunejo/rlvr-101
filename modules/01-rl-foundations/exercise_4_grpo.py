@@ -83,15 +83,17 @@ def group_advantages(rewards: np.ndarray) -> np.ndarray:
     all-identical case returns exact zeros, not tiny noise.
 
     Args:
-        rewards: shape (G,), the rewards for one group of completions.
+        rewards: shape (G,), the rewards for one    group of completions.
     Returns:
         shape (G,), the advantages.
     """
-    # TODO:    done implement group-relative advantages, handling the zero-std case.
-    advantages = (rewards - rewards.mean()) / (rewards.std() + EPS)
-    if rewards.std() == 0:
+    # TODO: implement group-relative advantages, handling the zero-std case.
+    rewards = np.asarray(rewards, dtype=float)
+    mean = rewards.mean()
+    std = rewards.std()
+    if std < EPS:
         return np.zeros_like(rewards)
-    return todo("group_advantages: (r - mean) / (std + eps), all-zeros if std == 0")
+    return (rewards - mean) / (std + EPS)
 
 
 def grpo_step(
@@ -124,13 +126,17 @@ def grpo_step(
         (new_theta, mean_reward_of_the_group)
     """
     # TODO: implement the six steps above.
-    return todo("grpo_step: sample a group, normalize rewards within it, then update")
+    probs = softmax(theta)
+    actions = [sample_action(probs, rng) for _ in range(group_size)]
+    rewards = np.array([REWARDS[a] for a in actions], dtype=float)
+    adv = group_advantages(rewards)
 
+    grad = np.zeros_like(theta)
+    for a, A in zip(actions, adv):
+        grad += A * grad_log_prob(probs, a)
+    grad /= group_size
 
-# ---------------------------------------------------------------------------
-# Written for you.
-# ---------------------------------------------------------------------------
-
+    return theta + lr * grad, float(rewards.mean())
 
 def train(steps: int = 600, group_size: int = 8, lr: float = 0.1, seed: int = 0) -> dict:
     rng = np.random.default_rng(seed)
